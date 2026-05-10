@@ -1,13 +1,17 @@
 package workout
 
 import (
+	"context"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/leonj/rep-set-lab/internal/auth"
 	"github.com/leonj/rep-set-lab/internal/validate"
 )
+
+const aiGenerateTimeout = 60 * time.Second
 
 type Handler struct {
 	service  *Service
@@ -46,8 +50,11 @@ func (h *Handler) Generate(c *gin.Context) {
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(c.Request.Context(), aiGenerateTimeout)
+	defer cancel()
+
 	claims := auth.GetClaims(c)
-	result, err := h.service.Generate(c.Request.Context(), claims.UserID, GenerateRequest{
+	result, err := h.service.Generate(ctx, claims.UserID, GenerateRequest{
 		UserPrompt:      req.Prompt,
 		MuscleGroup:     req.MuscleGroup,
 		DurationMinutes: req.DurationMinutes,

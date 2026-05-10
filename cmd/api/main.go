@@ -2,8 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -17,6 +22,8 @@ import (
 	"github.com/leonj/rep-set-lab/internal/workout"
 	"github.com/leonj/rep-set-lab/internal/ws"
 )
+
+const shutdownTimeout = 30 * time.Second
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -42,7 +49,6 @@ func main() {
 	}
 	logger.Info("migrations applied")
 
-	// Stores
 	userStore     := database.NewUserStore(db)
 	workoutStore  := database.NewWorkoutStore(db)
 	exerciseStore := database.NewExerciseStore(db)
@@ -61,49 +67,65 @@ func main() {
 		providers["openai"] = ai.NewOpenAI(cfg.OpenAIKey)
 	}
 	if cfg.GeminiKey != "" {
-		providers["gemini"] = ai.NewGemini(cfg.GeminiKey)
+		g, err := ai.NewGemini(cfg.GeminiKey)
+		if err != nil {
+			logger.Error("init gemini provider", "error", err)
+			os.Exit(1)
+		}
+		providers["gemini"] = g
 	}
 
-	hub     := ws.NewHub(logger)
-	svc     := workout.NewService(workoutStore, userStore, providers, hub)
-
-	authHandler     := auth.NewHandler(userStore, cfg.JWTSecret)
-	workoutHandler  := workout.NewHandler(svc, workoutStore)
-	userHandler     := user.NewHandler(userStore, workoutStore)
+	hub            := ws.NewHub(logger)
+	svc            := workout.NewService(workoutStore, userStore, providers, hub)
+	authHandler    := auth.NewHandler(userStore, cfg.JWTSecret)
+	workoutHandler := workout.NewHandler(svc, workoutStore)
+	userHandler    := user.NewHandler(userStore, workoutStore)
 	exerciseHandler := exercise.NewHandler(exerciseStore)
-	compareHandler  := ai.NewCompareHandler(providers)
+	compareHandler := ai.NewCompareHandler(providers)
 
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(gin.Logger())
 
 	v1 := r.Group("/api/v1")
-
-	// Public routes
 	v1.POST("/auth/register", authHandler.Register)
 	v1.POST("/auth/login",    authHandler.Login)
 
-	// Protected routes
 	protected := v1.Group("", auth.Middleware(cfg.JWTSecret))
 	{
-		protected.GET("/users/me/stats", userHandler.Stats)
-
+		protected.GET("/users/me/stats",           userHandler.Stats)
 		protected.POST("/workouts/generate",       workoutHandler.Generate)
 		protected.GET("/workouts",                 workoutHandler.List)
 		protected.GET("/workouts/:id",             workoutHandler.Get)
 		protected.POST("/workouts/:id/complete",   workoutHandler.Complete)
-
-		protected.GET("/exercises", exerciseHandler.List)
-
-		protected.POST("/ai/compare", compareHandler.Compare)
+		protected.GET("/exercises",                exerciseHandler.List)
+		protected.POST("/ai/compare",              compareHandler.Compare)
 	}
 
-	// WebSocket — JWT via ?token= query param
 	r.GET("/ws", auth.WSMiddleware(cfg.JWTSecret), hub.Handler)
 
-	logger.Info("server starting", "port", cfg.Port)
-	if err := r.Run(":" + cfg.Port); err != nil {
-		logger.Error("server error", "error", err)
-		os.Exit(1)
+	srv := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: r,
 	}
+
+	go func() {
+		logger.Info("server starting", "port", cfg.Port)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("server error", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	logger.Info("shutting down gracefully")
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Error("graceful shutdown failed", "error", err)
+	}
+	logger.Info("server stopped")
 }

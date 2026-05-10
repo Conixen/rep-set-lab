@@ -8,10 +8,10 @@ import (
 
 // WorkoutStorage is a handwritten mock for workout.Storage.
 type WorkoutStorage struct {
-	CreateFunc      func(ctx context.Context, w *database.Workout) (*database.Workout, error)
-	GetByIDFunc     func(ctx context.Context, id, userID int64) (*database.Workout, error)
-	ListByUserFunc  func(ctx context.Context, userID int64) ([]*database.Workout, error)
-	CompleteFunc    func(ctx context.Context, id, userID int64) error
+	CreateFunc             func(ctx context.Context, w *database.Workout) (*database.Workout, error)
+	GetByIDFunc            func(ctx context.Context, id, userID int64) (*database.Workout, error)
+	ListByUserFunc         func(ctx context.Context, userID int64) ([]*database.Workout, error)
+	CompleteAndAwardXPFunc func(ctx context.Context, workoutID, userID, xpAmount int64, newLevel int) error
 }
 
 func (m *WorkoutStorage) Create(ctx context.Context, w *database.Workout) (*database.Workout, error) {
@@ -36,9 +36,9 @@ func (m *WorkoutStorage) ListByUser(ctx context.Context, userID int64) ([]*datab
 	return nil, nil
 }
 
-func (m *WorkoutStorage) Complete(ctx context.Context, id, userID int64) error {
-	if m.CompleteFunc != nil {
-		return m.CompleteFunc(ctx, id, userID)
+func (m *WorkoutStorage) CompleteAndAwardXP(ctx context.Context, workoutID, userID, xpAmount int64, newLevel int) error {
+	if m.CompleteAndAwardXPFunc != nil {
+		return m.CompleteAndAwardXPFunc(ctx, workoutID, userID, xpAmount, newLevel)
 	}
 	return nil
 }

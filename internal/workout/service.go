@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/leonj/rep-set-lab/internal/ai"
 	"github.com/leonj/rep-set-lab/internal/database"
@@ -19,12 +21,13 @@ type Storage interface {
 	Create(ctx context.Context, w *database.Workout) (*database.Workout, error)
 	GetByID(ctx context.Context, id, userID int64) (*database.Workout, error)
 	ListByUser(ctx context.Context, userID int64) ([]*database.Workout, error)
-	Complete(ctx context.Context, id, userID int64) error
+	// CompleteAndAwardXP runs both the workout completion and the XP update in one
+	// transaction — never call them separately.
+	CompleteAndAwardXP(ctx context.Context, workoutID, userID, xpAmount int64, newLevel int) error
 }
 
 type UserStorage interface {
 	GetByID(ctx context.Context, id int64) (*database.User, error)
-	AddXP(ctx context.Context, userID, xpAmount int64, newLevel int) error
 }
 
 type Service struct {
@@ -56,7 +59,7 @@ type GenerateResult struct {
 func (s *Service) Generate(ctx context.Context, userID int64, req GenerateRequest) (*GenerateResult, error) {
 	provider, ok := s.providers[req.AIProvider]
 	if !ok {
-		return nil, fmt.Errorf("unknown ai_provider '%s': valid values are claude, openai, gemini", req.AIProvider)
+		return nil, fmt.Errorf("unknown ai_provider '%s': valid values are %s", req.AIProvider, s.validProviders())
 	}
 
 	aiReq := ai.WorkoutRequest{
@@ -122,11 +125,8 @@ func (s *Service) Complete(ctx context.Context, workoutID, userID int64) (*Compl
 	oldLevel := user.Level
 	newLevel := xp.LevelForXP(newTotalXP)
 
-	if err := s.workouts.Complete(ctx, workoutID, userID); err != nil {
+	if err := s.workouts.CompleteAndAwardXP(ctx, workoutID, userID, earned, newLevel); err != nil {
 		return nil, fmt.Errorf("complete workout: %w", err)
-	}
-	if err := s.users.AddXP(ctx, userID, earned, newLevel); err != nil {
-		return nil, fmt.Errorf("add xp: %w", err)
 	}
 
 	result := &CompleteResult{
@@ -138,4 +138,13 @@ func (s *Service) Complete(ctx context.Context, workoutID, userID int64) (*Compl
 
 	s.hub.Broadcast(userID, ws.Event{Type: ws.EventXPUpdate, Data: result})
 	return result, nil
+}
+
+func (s *Service) validProviders() string {
+	names := make([]string, 0, len(s.providers))
+	for name := range s.providers {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return strings.Join(names, ", ")
 }

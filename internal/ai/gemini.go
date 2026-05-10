@@ -17,23 +17,22 @@ const (
 )
 
 type GeminiProvider struct {
-	apiKey string
+	client *genai.Client
 }
 
-func NewGemini(apiKey string) *GeminiProvider {
-	return &GeminiProvider{apiKey: apiKey}
+// NewGemini creates the Gemini client once at startup, not per-request.
+func NewGemini(apiKey string) (*GeminiProvider, error) {
+	client, err := genai.NewClient(context.Background(), option.WithAPIKey(apiKey))
+	if err != nil {
+		return nil, fmt.Errorf("gemini: create client: %w", err)
+	}
+	return &GeminiProvider{client: client}, nil
 }
 
 func (p *GeminiProvider) Name() string { return "gemini" }
 
 func (p *GeminiProvider) GenerateWorkout(ctx context.Context, req WorkoutRequest) (WorkoutResponse, Usage, error) {
-	client, err := genai.NewClient(ctx, option.WithAPIKey(p.apiKey))
-	if err != nil {
-		return WorkoutResponse{}, Usage{}, fmt.Errorf("gemini: create client: %w", err)
-	}
-	defer client.Close()
-
-	model := client.GenerativeModel(geminiModel)
+	model := p.client.GenerativeModel(geminiModel)
 	model.SystemInstruction = &genai.Content{
 		Parts: []genai.Part{genai.Text(systemPrompt)},
 	}

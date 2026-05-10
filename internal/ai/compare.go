@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"net/http"
 	"sync"
 	"time"
@@ -8,6 +9,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/leonj/rep-set-lab/internal/validate"
 )
+
+// compareTimeout gives all providers enough time to respond.
+// It is longer than the single-provider timeout because the critical path
+// is the slowest provider, not any individual one.
+const compareTimeout = 90 * time.Second
 
 type ProviderResult struct {
 	Provider  string           `json:"provider"`
@@ -56,6 +62,9 @@ func (h *CompareHandler) Compare(c *gin.Context) {
 		Goals:           req.Goals,
 	}
 
+	ctx, cancel := context.WithTimeout(c.Request.Context(), compareTimeout)
+	defer cancel()
+
 	var (
 		mu      sync.Mutex
 		wg      sync.WaitGroup
@@ -67,7 +76,7 @@ func (h *CompareHandler) Compare(c *gin.Context) {
 		go func(p Provider) {
 			defer wg.Done()
 			start := time.Now()
-			resp, usage, err := p.GenerateWorkout(c.Request.Context(), aiReq)
+			resp, usage, err := p.GenerateWorkout(ctx, aiReq)
 			res := ProviderResult{
 				Provider:  p.Name(),
 				LatencyMs: time.Since(start).Milliseconds(),

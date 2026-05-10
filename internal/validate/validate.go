@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"net/mail"
 	"strings"
 )
 
@@ -30,7 +31,7 @@ func Email(field, value string) error {
 	if err := RequiredString(field, value); err != nil {
 		return err
 	}
-	if !strings.Contains(value, "@") || !strings.Contains(value, ".") {
+	if _, err := mail.ParseAddress(value); err != nil {
 		return fmt.Errorf("field '%s' must be a valid email address", field)
 	}
 	return nil
