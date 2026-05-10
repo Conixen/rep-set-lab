@@ -1,61 +1,62 @@
 ================================================================================
-DAG: 2026-05-10
+DAY: 2026-05-10
 ================================================================================
 
-VAD VI GJORT
-------------
-- Initierade Go-projektet (go 1.25, uppgraderat från 1.24 av Gin-krav)
-- Satte upp komplett mappstruktur enligt FastTrack-konventioner
-- Installerade alla beroenden: Gin, sqlx, lib/pq, golang-jwt, gorilla/websocket,
+WHAT WE DID
+-----------
+- Initialized Go project (go 1.25, upgraded from 1.24 due to Gin requirement)
+- Set up complete folder structure following FastTrack conventions
+- Installed all dependencies: Gin, sqlx, lib/pq, golang-jwt, gorilla/websocket,
   anthropic-sdk-go v1.41.0, openai-go v1.12.0, generative-ai-go
-- Skapade 4 idempotenta PostgreSQL-migreringar (IF NOT EXISTS-guards)
-- Implementerade database-lager: UserStore, WorkoutStore, ExerciseStore (raw SQL, sqlx)
-- Implementerade JWT-autentisering: middleware + register/login-handlers
-- Implementerade XP-tjänst: Earned(duration), LevelForXP(xp), NextThreshold(level)
-  med expanderbara level-thresholds som slice
-- Implementerade AI-providerlagret:
-  - Gemensamt Provider-interface + WorkoutRequest/WorkoutResponse/Usage-typer
-  - Delad systemPrompt och buildUserPrompt (ej duplicerad per provider)
+- Created 4 idempotent PostgreSQL migrations (IF NOT EXISTS guards)
+- Implemented database layer: UserStore, WorkoutStore, ExerciseStore (raw SQL, sqlx)
+- Implemented JWT auth: middleware + register/login handlers
+- Implemented XP service: Earned(duration), LevelForXP(xp), NextThreshold(level)
+  with expandable level thresholds as a slice
+- Implemented AI provider layer:
+  - Shared Provider interface + WorkoutRequest/WorkoutResponse/Usage types
+  - Shared systemPrompt and buildUserPrompt (not duplicated per provider)
   - claude.go (anthropic-sdk-go v1.41.0)
   - openai.go (openai-go v1.12.0)
   - gemini.go (generative-ai-go)
-  - compare.go: parallell anrop till alla providers, returnerar strukturerad jämförelse
-- Implementerade workout-tjänst och handlers (generate, list, get, complete)
-- Implementerade user stats-handler (XP, level, next threshold, workout-räknare)
-- Implementerade exercise library (33 övningar, 6 muskelgrupper) + seed vid boot
-- Implementerade WebSocket-hub (real-time XP-push efter complete)
-- Scaffoldat getWithCache[T any] generisk helper (redo för Redis senare)
-- Handskrivna mocks: mock.AIProvider, mock.WorkoutStorage
-- CLAUDE.md-hierarki: root + internal/ai/ + internal/workout/ + internal/database/
-- Makefile, .env.example
+  - compare.go: parallel calls to all providers, returns structured comparison
+- Implemented workout service and handlers (generate, list, get, complete)
+- Implemented user stats handler (XP, level, next threshold, workout count)
+- Implemented exercise library (33 exercises, 6 muscle groups) + seed on boot
+- Implemented WebSocket hub (real-time XP push after complete)
+- Scaffolded getWithCache[T any] generic helper (ready for Redis later)
+- Handwritten mocks: mock.AIProvider, mock.WorkoutStorage
+- CLAUDE.md hierarchy: root + internal/ai/ + internal/workout/ + internal/database/
+- Makefile, .env.example, .gitignore
 
-TEKNISKA BESLUT OCH VARFÖR
---------------------------
-- Go 1.25 istf 1.26: Gin kräver 1.25 och det är vad som är installerat.
-  Uppdatera go.mod till 1.26 när det är installerat.
-- FastTrack-mönster som togs med: per-domain DB-filer, struct-baserad config,
-  validering med fältnamn i felmeddelanden, handskrivna mocks, CLAUDE.md-hierarki,
-  getWithCache[T any]-generics, idempotenta migreringar.
-- FastTrack-mönster som INTE togs med: gRPC, GraphQL, Kafka, ClickHouse, Redis
-  (för tunga för detta projekt).
-- workout.Service använder interfaces (Storage, UserStorage) istf konkreta typer
-  → testbart utan riktig DB.
-- XP lagras på workout-raden vid generering (xp_earned), inte vid completion.
-  Gör belöningen förutsägbar och opåverkad av framtida formeländringar.
-- Gemini strippar markdown-fences defensivt trots instruktioner i systemprompt.
+TECHNICAL DECISIONS AND WHY
+----------------------------
+- Go 1.25 instead of 1.26: Gin requires 1.25 and that is what is installed.
+  Update go.mod to 1.26 when it becomes available.
+- FastTrack patterns carried over: per-domain DB files, struct-based config,
+  validation with field names in error messages, handwritten mocks, CLAUDE.md
+  hierarchy, getWithCache[T any] generics, idempotent migrations.
+- FastTrack patterns NOT carried over: gRPC, GraphQL, Kafka, ClickHouse, Redis
+  (too heavy for this project).
+- workout.Service uses interfaces (Storage, UserStorage) instead of concrete types
+  → testable without a real DB.
+- XP stored on the workout row at generation time (xp_earned column), not
+  recalculated at completion. Makes the reward predictable and unaffected by
+  future formula changes.
+- Gemini strips markdown fences defensively despite instructions in system prompt.
 
-POTENTIELLA ÄNDRINGAR
----------------------
-- Complete-flödet (workouts.Complete + users.AddXP) är inte i en transaktion.
-  Om AddXP misslyckas efter Complete är workoutet markerat utan XP. Wrappa i
-  transaktion om detta visar sig vara ett problem.
-- AI-kostnadskonstanter är estimates — uppdatera vid prisändringar.
-- Level-thresholds kan utökas med multipliers (streak, svårighetsgrad) via Earned().
+POTENTIAL CHANGES
+-----------------
+- The complete flow (workouts.Complete + users.AddXP) is not in a transaction.
+  If AddXP fails after Complete, the workout is marked done but XP is not awarded.
+  Wrap in a transaction if this becomes a problem.
+- AI cost constants are estimates — update when pricing changes.
+- Level thresholds can be extended with multipliers (streak, difficulty) via Earned().
 
-IMORGON
--------
-- Sätt upp PostgreSQL-instans och testa faktiska migreringar
-- Testa AI-providers med riktiga API-nycklar
-- Börja skriva tester för workout-service med mock.AIProvider
+TOMORROW
+--------
+- Set up PostgreSQL instance and test actual migrations
+- Test AI providers with real API keys
+- Start writing tests for workout service using mock.AIProvider
 
 ================================================================================
