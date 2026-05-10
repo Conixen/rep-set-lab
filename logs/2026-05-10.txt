@@ -1,0 +1,61 @@
+================================================================================
+DAG: 2026-05-10
+================================================================================
+
+VAD VI GJORT
+------------
+- Initierade Go-projektet (go 1.25, uppgraderat från 1.24 av Gin-krav)
+- Satte upp komplett mappstruktur enligt FastTrack-konventioner
+- Installerade alla beroenden: Gin, sqlx, lib/pq, golang-jwt, gorilla/websocket,
+  anthropic-sdk-go v1.41.0, openai-go v1.12.0, generative-ai-go
+- Skapade 4 idempotenta PostgreSQL-migreringar (IF NOT EXISTS-guards)
+- Implementerade database-lager: UserStore, WorkoutStore, ExerciseStore (raw SQL, sqlx)
+- Implementerade JWT-autentisering: middleware + register/login-handlers
+- Implementerade XP-tjänst: Earned(duration), LevelForXP(xp), NextThreshold(level)
+  med expanderbara level-thresholds som slice
+- Implementerade AI-providerlagret:
+  - Gemensamt Provider-interface + WorkoutRequest/WorkoutResponse/Usage-typer
+  - Delad systemPrompt och buildUserPrompt (ej duplicerad per provider)
+  - claude.go (anthropic-sdk-go v1.41.0)
+  - openai.go (openai-go v1.12.0)
+  - gemini.go (generative-ai-go)
+  - compare.go: parallell anrop till alla providers, returnerar strukturerad jämförelse
+- Implementerade workout-tjänst och handlers (generate, list, get, complete)
+- Implementerade user stats-handler (XP, level, next threshold, workout-räknare)
+- Implementerade exercise library (33 övningar, 6 muskelgrupper) + seed vid boot
+- Implementerade WebSocket-hub (real-time XP-push efter complete)
+- Scaffoldat getWithCache[T any] generisk helper (redo för Redis senare)
+- Handskrivna mocks: mock.AIProvider, mock.WorkoutStorage
+- CLAUDE.md-hierarki: root + internal/ai/ + internal/workout/ + internal/database/
+- Makefile, .env.example
+
+TEKNISKA BESLUT OCH VARFÖR
+--------------------------
+- Go 1.25 istf 1.26: Gin kräver 1.25 och det är vad som är installerat.
+  Uppdatera go.mod till 1.26 när det är installerat.
+- FastTrack-mönster som togs med: per-domain DB-filer, struct-baserad config,
+  validering med fältnamn i felmeddelanden, handskrivna mocks, CLAUDE.md-hierarki,
+  getWithCache[T any]-generics, idempotenta migreringar.
+- FastTrack-mönster som INTE togs med: gRPC, GraphQL, Kafka, ClickHouse, Redis
+  (för tunga för detta projekt).
+- workout.Service använder interfaces (Storage, UserStorage) istf konkreta typer
+  → testbart utan riktig DB.
+- XP lagras på workout-raden vid generering (xp_earned), inte vid completion.
+  Gör belöningen förutsägbar och opåverkad av framtida formeländringar.
+- Gemini strippar markdown-fences defensivt trots instruktioner i systemprompt.
+
+POTENTIELLA ÄNDRINGAR
+---------------------
+- Complete-flödet (workouts.Complete + users.AddXP) är inte i en transaktion.
+  Om AddXP misslyckas efter Complete är workoutet markerat utan XP. Wrappa i
+  transaktion om detta visar sig vara ett problem.
+- AI-kostnadskonstanter är estimates — uppdatera vid prisändringar.
+- Level-thresholds kan utökas med multipliers (streak, svårighetsgrad) via Earned().
+
+IMORGON
+-------
+- Sätt upp PostgreSQL-instans och testa faktiska migreringar
+- Testa AI-providers med riktiga API-nycklar
+- Börja skriva tester för workout-service med mock.AIProvider
+
+================================================================================

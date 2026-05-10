@@ -1,0 +1,54 @@
+package database
+
+import (
+	"context"
+	"time"
+
+	"github.com/jmoiron/sqlx"
+)
+
+type User struct {
+	ID           int64     `db:"id"            json:"id"`
+	Email        string    `db:"email"          json:"email"`
+	Username     string    `db:"username"       json:"username"`
+	PasswordHash string    `db:"password_hash"  json:"-"`
+	XP           int64     `db:"xp"             json:"xp"`
+	Level        int       `db:"level"          json:"level"`
+	CreatedAt    time.Time `db:"created_at"     json:"created_at"`
+	UpdatedAt    time.Time `db:"updated_at"     json:"updated_at"`
+}
+
+type UserStore struct {
+	db *sqlx.DB
+}
+
+func NewUserStore(db *sqlx.DB) *UserStore { return &UserStore{db: db} }
+
+func (s *UserStore) Create(ctx context.Context, email, username, passwordHash string) (*User, error) {
+	var u User
+	err := s.db.QueryRowxContext(ctx, `
+		INSERT INTO users (email, username, password_hash)
+		VALUES ($1, $2, $3)
+		RETURNING id, email, username, password_hash, xp, level, created_at, updated_at
+	`, email, username, passwordHash).StructScan(&u)
+	return &u, err
+}
+
+func (s *UserStore) GetByEmail(ctx context.Context, email string) (*User, error) {
+	var u User
+	err := s.db.GetContext(ctx, &u, `SELECT * FROM users WHERE email = $1`, email)
+	return &u, err
+}
+
+func (s *UserStore) GetByID(ctx context.Context, id int64) (*User, error) {
+	var u User
+	err := s.db.GetContext(ctx, &u, `SELECT * FROM users WHERE id = $1`, id)
+	return &u, err
+}
+
+func (s *UserStore) AddXP(ctx context.Context, userID, xpAmount int64, newLevel int) error {
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE users SET xp = xp + $1, level = $2, updated_at = NOW() WHERE id = $3
+	`, xpAmount, newLevel, userID)
+	return err
+}

@@ -1,0 +1,15 @@
+# Environment
+.env
+
+# Build output
+bin/
+
+# Go
+*.exe
+*.test
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
