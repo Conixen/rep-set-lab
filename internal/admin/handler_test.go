@@ -16,6 +16,7 @@ import (
 	"github.com/leonj/rep-set-lab/internal/admin"
 	"github.com/leonj/rep-set-lab/internal/auth"
 	"github.com/leonj/rep-set-lab/internal/database"
+	"github.com/leonj/rep-set-lab/internal/exercise"
 )
 
 const testSecret = "test-secret-key-for-admin-tests"
@@ -116,6 +117,12 @@ func (s *stubWorkoutStore) AdminSetCompleted(_ context.Context, id int64, comple
 	return sql.ErrNoRows
 }
 
+type stubSyncer struct{}
+
+func (s *stubSyncer) Sync(_ context.Context) (exercise.SyncResult, error) {
+	return exercise.SyncResult{Total: 0}, nil
+}
+
 // adminTestRouter injects admin claims (userID=1, version=1) and wires AdminMiddleware.
 func adminTestRouter(users *stubUserStore, workouts *stubWorkoutStore) *gin.Engine {
 	r := gin.New()
@@ -134,7 +141,7 @@ func adminTestRouter(users *stubUserStore, workouts *stubWorkoutStore) *gin.Engi
 	})
 	r.Use(auth.AdminMiddleware(users))
 
-	h := admin.NewHandler(users, workouts)
+	h := admin.NewHandler(users, workouts, &stubSyncer{})
 	r.GET("/admin/users", h.ListUsers)
 	r.GET("/admin/users/:id", h.GetUser)
 	r.PUT("/admin/users/:id", h.UpdateUser)

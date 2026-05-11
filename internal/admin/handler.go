@@ -4,13 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/leonj/rep-set-lab/internal/auth"
 	"github.com/leonj/rep-set-lab/internal/database"
+	"github.com/leonj/rep-set-lab/internal/exercise"
 	"github.com/leonj/rep-set-lab/internal/validate"
 )
 
@@ -28,13 +31,18 @@ type WorkoutStore interface {
 	AdminSetCompleted(ctx context.Context, id int64, completed bool) error
 }
 
+type ExerciseSyncer interface {
+	Sync(ctx context.Context) (exercise.SyncResult, error)
+}
+
 type Handler struct {
 	users    UserStore
 	workouts WorkoutStore
+	syncer   ExerciseSyncer
 }
 
-func NewHandler(users UserStore, workouts WorkoutStore) *Handler {
-	return &Handler{users: users, workouts: workouts}
+func NewHandler(users UserStore, workouts WorkoutStore, syncer ExerciseSyncer) *Handler {
+	return &Handler{users: users, workouts: workouts, syncer: syncer}
 }
 
 // --- Users ---
@@ -203,4 +211,20 @@ func (h *Handler) UpdateWorkout(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"workout": workout})
+}
+
+// --- Exercises ---
+
+// SyncExercises triggers a media sync for all exercises, fetching thumbnail and GIF
+// URLs from Wger and ExerciseDB. Runs synchronously; capped at 5 minutes.
+func (h *Handler) SyncExercises(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Minute)
+	defer cancel()
+	result, err := h.syncer.Sync(ctx)
+	if err != nil {
+		slog.Default().Error("exercise sync failed", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "sync failed"})
+		return
+	}
+	c.JSON(http.StatusOK, result)
 }

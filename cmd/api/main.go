@@ -83,7 +83,15 @@ func main() {
 	userHandler     := user.NewHandler(userStore, workoutStore)
 	exerciseHandler := exercise.NewHandler(exerciseStore)
 	compareHandler  := ai.NewCompareHandler(providers)
-	adminHandler    := admin.NewHandler(userStore, workoutStore)
+
+	wgerClient := exercise.NewWgerClient()
+	var exerciseDBClient *exercise.ExerciseDBClient
+	if cfg.ExerciseDBKey != "" {
+		exerciseDBClient = exercise.NewExerciseDBClient(cfg.ExerciseDBKey)
+	}
+	syncSvc := exercise.NewSyncService(exerciseStore, wgerClient, exerciseDBClient)
+
+	adminHandler := admin.NewHandler(userStore, workoutStore, syncSvc)
 
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -110,9 +118,10 @@ func main() {
 		adminGroup.GET("/users/:id",          adminHandler.GetUser)
 		adminGroup.PUT("/users/:id",          adminHandler.UpdateUser)
 		adminGroup.DELETE("/users/:id",       adminHandler.DeleteUser)
-		adminGroup.GET("/workouts",           adminHandler.ListWorkouts)
-		adminGroup.GET("/workouts/:id",       adminHandler.GetWorkout)
-		adminGroup.PUT("/workouts/:id",       adminHandler.UpdateWorkout)
+		adminGroup.GET("/workouts",            adminHandler.ListWorkouts)
+		adminGroup.GET("/workouts/:id",        adminHandler.GetWorkout)
+		adminGroup.PUT("/workouts/:id",        adminHandler.UpdateWorkout)
+		adminGroup.POST("/exercises/sync",     adminHandler.SyncExercises)
 	}
 
 	r.GET("/ws", auth.WSMiddleware(cfg.JWTSecret), hub.Handler)
