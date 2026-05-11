@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
+	"github.com/leonj/rep-set-lab/internal/admin"
 	"github.com/leonj/rep-set-lab/internal/ai"
 	"github.com/leonj/rep-set-lab/internal/auth"
 	"github.com/leonj/rep-set-lab/internal/config"
@@ -75,13 +76,14 @@ func main() {
 		providers["gemini"] = g
 	}
 
-	hub            := ws.NewHub(logger)
-	svc            := workout.NewService(workoutStore, userStore, providers, hub)
-	authHandler    := auth.NewHandler(userStore, cfg.JWTSecret)
-	workoutHandler := workout.NewHandler(svc, workoutStore)
-	userHandler    := user.NewHandler(userStore, workoutStore)
+	hub             := ws.NewHub(logger)
+	svc             := workout.NewService(workoutStore, userStore, providers, hub)
+	authHandler     := auth.NewHandler(userStore, cfg.JWTSecret)
+	workoutHandler  := workout.NewHandler(svc, workoutStore)
+	userHandler     := user.NewHandler(userStore, workoutStore)
 	exerciseHandler := exercise.NewHandler(exerciseStore)
-	compareHandler := ai.NewCompareHandler(providers)
+	compareHandler  := ai.NewCompareHandler(providers)
+	adminHandler    := admin.NewHandler(userStore, workoutStore)
 
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -100,6 +102,17 @@ func main() {
 		protected.POST("/workouts/:id/complete",   workoutHandler.Complete)
 		protected.GET("/exercises",                exerciseHandler.List)
 		protected.POST("/ai/compare",              compareHandler.Compare)
+	}
+
+	adminGroup := v1.Group("/admin", auth.Middleware(cfg.JWTSecret), auth.AdminMiddleware(userStore))
+	{
+		adminGroup.GET("/users",              adminHandler.ListUsers)
+		adminGroup.GET("/users/:id",          adminHandler.GetUser)
+		adminGroup.PUT("/users/:id",          adminHandler.UpdateUser)
+		adminGroup.DELETE("/users/:id",       adminHandler.DeleteUser)
+		adminGroup.GET("/workouts",           adminHandler.ListWorkouts)
+		adminGroup.GET("/workouts/:id",       adminHandler.GetWorkout)
+		adminGroup.PUT("/workouts/:id",       adminHandler.UpdateWorkout)
 	}
 
 	r.GET("/ws", auth.WSMiddleware(cfg.JWTSecret), hub.Handler)
