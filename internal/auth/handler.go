@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -12,12 +13,17 @@ import (
 	"github.com/leonj/rep-set-lab/internal/validate"
 )
 
+type userStore interface {
+	Create(ctx context.Context, email, username, passwordHash string) (*database.User, error)
+	GetByEmail(ctx context.Context, email string) (*database.User, error)
+}
+
 type Handler struct {
-	users     *database.UserStore
+	users     userStore
 	jwtSecret string
 }
 
-func NewHandler(users *database.UserStore, jwtSecret string) *Handler {
+func NewHandler(users userStore, jwtSecret string) *Handler {
 	return &Handler{users: users, jwtSecret: jwtSecret}
 }
 
