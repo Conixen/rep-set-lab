@@ -6,12 +6,13 @@ import (
 )
 
 type Config struct {
-	Port         string
-	DatabaseURL  string
-	JWTSecret    string
-	AnthropicKey string
-	OpenAIKey    string
-	GeminiKey    string
+	Port          string
+	DatabaseURL   string
+	JWTSecret     string
+	AnthropicKey  string
+	OpenAIKey     string
+	GeminiKey     string
+	ExerciseDBKey string
 }
 
 func Load() (*Config, error) {
@@ -19,9 +20,10 @@ func Load() (*Config, error) {
 		Port:         getEnv("PORT", "8080"),
 		DatabaseURL:  os.Getenv("DATABASE_URL"),
 		JWTSecret:    os.Getenv("JWT_SECRET"),
-		AnthropicKey: os.Getenv("ANTHROPIC_API_KEY"),
-		OpenAIKey:    os.Getenv("OPENAI_API_KEY"),
-		GeminiKey:    os.Getenv("GEMINI_API_KEY"),
+		AnthropicKey:  os.Getenv("ANTHROPIC_API_KEY"),
+		OpenAIKey:     os.Getenv("OPENAI_API_KEY"),
+		GeminiKey:     os.Getenv("GEMINI_API_KEY"),
+		ExerciseDBKey: os.Getenv("EXERCISEDB_API_KEY"),
 	}
 	if cfg.DatabaseURL == "" {
 		return nil, fmt.Errorf("DATABASE_URL is required")
