@@ -71,7 +71,7 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	token, err := h.issueToken(user.ID, user.Username)
+	token, err := h.issueToken(user.ID, user.Username, user.Role, user.TokenVersion)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to issue token"})
 		return
@@ -105,7 +105,7 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := h.issueToken(user.ID, user.Username)
+	token, err := h.issueToken(user.ID, user.Username, user.Role, user.TokenVersion)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to issue token"})
 		return
@@ -114,10 +114,12 @@ func (h *Handler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token": token, "user": sanitize(user)})
 }
 
-func (h *Handler) issueToken(userID int64, username string) (string, error) {
+func (h *Handler) issueToken(userID int64, username, role string, tokenVersion int) (string, error) {
 	claims := &Claims{
-		UserID:   userID,
-		Username: username,
+		UserID:       userID,
+		Username:     username,
+		Role:         role,
+		TokenVersion: tokenVersion,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -133,5 +135,6 @@ func sanitize(u *database.User) gin.H {
 		"username": u.Username,
 		"xp":       u.XP,
 		"level":    u.Level,
+		"role":     u.Role,
 	}
 }

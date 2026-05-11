@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -10,10 +11,23 @@ import (
 
 const claimsKey = "claims"
 
+const (
+	RoleUser  = "user"
+	RoleAdmin = "admin"
+)
+
 type Claims struct {
-	UserID   int64  `json:"user_id"`
-	Username string `json:"username"`
+	UserID       int64  `json:"user_id"`
+	Username     string `json:"username"`
+	Role         string `json:"role"`
+	TokenVersion int    `json:"token_version"`
 	jwt.RegisteredClaims
+}
+
+// UserVersionStore is satisfied by database.UserStore; used by AdminMiddleware to
+// detect stale tokens after a role change.
+type UserVersionStore interface {
+	GetTokenVersion(ctx context.Context, id int64) (int, error)
 }
 
 func Middleware(secret string) gin.HandlerFunc {
@@ -60,6 +74,28 @@ func GetClaims(c *gin.Context) *Claims {
 	v, _ := c.Get(claimsKey)
 	claims, _ := v.(*Claims)
 	return claims
+}
+
+// AdminMiddleware must be chained after Middleware. It rejects non-admin callers with 403
+// and callers whose token_version no longer matches the DB (e.g. demoted admins) with 401.
+func AdminMiddleware(store UserVersionStore) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		claims := GetClaims(c)
+		if claims == nil || claims.Role != RoleAdmin {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "admin access required"})
+			return
+		}
+		current, err := store.GetTokenVersion(c.Request.Context(), claims.UserID)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to verify token"})
+			return
+		}
+		if claims.TokenVersion != current {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token has been invalidated"})
+			return
+		}
+		c.Next()
+	}
 }
 
 func parseToken(tokenStr, secret string) (*Claims, error) {

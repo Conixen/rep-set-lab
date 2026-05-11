@@ -3,6 +3,7 @@ package validate
 import (
 	"fmt"
 	"net/mail"
+	"slices"
 	"strings"
 )
 
@@ -35,4 +36,11 @@ func Email(field, value string) error {
 		return fmt.Errorf("field '%s' must be a valid email address", field)
 	}
 	return nil
+}
+
+func OneOf(field, value string, allowed ...string) error {
+	if slices.Contains(allowed, value) {
+		return nil
+	}
+	return fmt.Errorf("field '%s' must be one of %v, got %q", field, allowed, value)
 }

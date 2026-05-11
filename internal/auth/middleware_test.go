@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,12 @@ import (
 	"github.com/leonj/rep-set-lab/internal/auth"
 )
 
+type stubVersionStore struct{ version int }
+
+func (s *stubVersionStore) GetTokenVersion(_ context.Context, _ int64) (int, error) {
+	return s.version, nil
+}
+
 const testSecret = "test-secret-key-for-unit-tests"
 
 func init() {
@@ -20,9 +27,19 @@ func init() {
 }
 
 func makeToken(secret string, userID int64, username string, expiry time.Duration) string {
+	return makeTokenWithRole(secret, userID, username, auth.RoleUser, expiry)
+}
+
+func makeTokenWithRole(secret string, userID int64, username, role string, expiry time.Duration) string {
+	return makeTokenFull(secret, userID, username, role, 1, expiry)
+}
+
+func makeTokenFull(secret string, userID int64, username, role string, tokenVersion int, expiry time.Duration) string {
 	claims := &auth.Claims{
-		UserID:   userID,
-		Username: username,
+		UserID:       userID,
+		Username:     username,
+		Role:         role,
+		TokenVersion: tokenVersion,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -161,6 +178,68 @@ func TestWSMiddleware_ExpiredToken(t *testing.T) {
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/ws?token="+token, nil)
 	wsRouter(testSecret).ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", w.Code)
+	}
+}
+
+// --- AdminMiddleware ---
+
+func adminRouter(secret string, store auth.UserVersionStore) *gin.Engine {
+	r := gin.New()
+	r.Use(auth.Middleware(secret))
+	r.Use(auth.AdminMiddleware(store))
+	r.GET("/admin", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+	return r
+}
+
+func TestAdminMiddleware_AdminToken(t *testing.T) {
+	token := makeTokenWithRole(testSecret, 1, "leon", auth.RoleAdmin, time.Hour)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	adminRouter(testSecret, &stubVersionStore{version: 1}).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", w.Code)
+	}
+}
+
+func TestAdminMiddleware_UserToken(t *testing.T) {
+	token := makeTokenWithRole(testSecret, 2, "bob", auth.RoleUser, time.Hour)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	adminRouter(testSecret, &stubVersionStore{version: 1}).ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Errorf("status = %d, want 403", w.Code)
+	}
+}
+
+func TestAdminMiddleware_NoToken(t *testing.T) {
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
+	adminRouter(testSecret, &stubVersionStore{version: 1}).ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", w.Code)
+	}
+}
+
+func TestAdminMiddleware_StaleToken(t *testing.T) {
+	// token carries version 1 but the DB has been bumped to 2 (admin was demoted)
+	token := makeTokenFull(testSecret, 1, "leon", auth.RoleAdmin, 1, time.Hour)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	adminRouter(testSecret, &stubVersionStore{version: 2}).ServeHTTP(w, req)
 
 	if w.Code != http.StatusUnauthorized {
 		t.Errorf("status = %d, want 401", w.Code)
