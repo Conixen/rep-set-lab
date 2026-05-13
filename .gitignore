@@ -1,13 +1,18 @@
 # Environment
 .env
+backend/.env
 
 # Build output
-bin/
+backend/bin/
 
 # Go
 *.exe
 *.test
 *.out
+
+# Node
+client/node_modules/
+client/dist/
 
 # IDE
 .idea/

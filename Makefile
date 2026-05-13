@@ -1,22 +1,19 @@
-.PHONY: run build migrate seed test lint
+.PHONY: run build test lint client dev
 
 run:
-	go run ./cmd/api
+	cd backend && go run ./cmd/api
 
 build:
-	go build -o bin/api ./cmd/api
-
-migrate:
-	@echo "Migrations run automatically on startup via database.Migrate()"
-
-seed:
-	@echo "Exercise seed runs automatically on startup via exerciseStore.Seed()"
+	cd backend && go build -o bin/api ./cmd/api
 
 test:
-	go test ./...
+	cd backend && go test ./...
 
 lint:
-	golangci-lint run ./...
+	cd backend && golangci-lint run ./...
 
-tidy:
-	go mod tidy
+client:
+	cd client && npm run dev
+
+dev:
+	$(MAKE) -j2 run client
