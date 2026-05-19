@@ -4,6 +4,7 @@ import LoginView   from '../views/LoginView.vue'
 import HomeView    from '../views/HomeView.vue'
 import LibraryView from '../views/LibraryView.vue'
 import AiView      from '../views/AiView.vue'
+import HistoryView from '../views/HistoryView.vue'
 import ProfileView from '../views/ProfileView.vue'
 
 const router = createRouter({
@@ -13,6 +14,7 @@ const router = createRouter({
     { path: '/',         component: HomeView },
     { path: '/library',  component: LibraryView },
     { path: '/ai',       component: AiView },
+    { path: '/history',  component: HistoryView },
     { path: '/profile',  component: ProfileView },
   ],
 })
