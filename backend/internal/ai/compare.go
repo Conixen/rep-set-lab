@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/leonj/rep-set-lab/internal/auth"
+	"github.com/leonj/rep-set-lab/internal/database"
 	"github.com/leonj/rep-set-lab/internal/validate"
 )
 
@@ -24,11 +26,12 @@ type ProviderResult struct {
 }
 
 type CompareHandler struct {
-	providers map[string]Provider
+	providers  map[string]Provider
+	aiRequests *database.AIRequestStore
 }
 
-func NewCompareHandler(providers map[string]Provider) *CompareHandler {
-	return &CompareHandler{providers: providers}
+func NewCompareHandler(providers map[string]Provider, aiRequests *database.AIRequestStore) *CompareHandler {
+	return &CompareHandler{providers: providers, aiRequests: aiRequests}
 }
 
 type compareRequest struct {
@@ -40,6 +43,8 @@ type compareRequest struct {
 }
 
 func (h *CompareHandler) Compare(c *gin.Context) {
+	claims := auth.GetClaims(c)
+
 	var req compareRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -77,15 +82,30 @@ func (h *CompareHandler) Compare(c *gin.Context) {
 			defer wg.Done()
 			start := time.Now()
 			resp, usage, err := p.GenerateWorkout(ctx, aiReq)
+			latencyMs := time.Since(start).Milliseconds()
 			res := ProviderResult{
 				Provider:  p.Name(),
-				LatencyMs: time.Since(start).Milliseconds(),
+				LatencyMs: latencyMs,
 			}
 			if err != nil {
 				res.Error = err.Error()
 			} else {
 				res.Response = &resp
 				res.Usage = &usage
+			}
+			if h.aiRequests != nil {
+				logEntry := &database.AIRequest{
+					UserID:       claims.UserID,
+					Provider:     p.Name(),
+					LatencyMs:    latencyMs,
+					ValidJSON:    err == nil,
+				}
+				if usage != (Usage{}) {
+					logEntry.InputTokens  = usage.InputTokens
+					logEntry.OutputTokens = usage.OutputTokens
+					logEntry.CostUSD      = usage.CostUSD
+				}
+				_ = h.aiRequests.Log(ctx, logEntry)
 			}
 			mu.Lock()
 			results = append(results, res)

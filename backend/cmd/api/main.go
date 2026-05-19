@@ -51,9 +51,10 @@ func main() {
 	}
 	logger.Info("migrations applied")
 
-	userStore     := database.NewUserStore(db)
-	workoutStore  := database.NewWorkoutStore(db)
-	exerciseStore := database.NewExerciseStore(db)
+	userStore        := database.NewUserStore(db)
+	workoutStore     := database.NewWorkoutStore(db)
+	exerciseStore    := database.NewExerciseStore(db)
+	aiRequestStore   := database.NewAIRequestStore(db)
 
 	// Seed exercise library (ON CONFLICT DO NOTHING — safe to run every boot)
 	if err := exerciseStore.Seed(context.Background(), exercise.DefaultExercises()); err != nil {
@@ -78,12 +79,12 @@ func main() {
 	}
 
 	hub             := ws.NewHub(logger)
-	svc             := workout.NewService(workoutStore, userStore, providers, hub)
+	svc             := workout.NewService(workoutStore, userStore, providers, hub, aiRequestStore)
 	authHandler     := auth.NewHandler(userStore, cfg.JWTSecret)
 	workoutHandler  := workout.NewHandler(svc, workoutStore)
 	userHandler     := user.NewHandler(userStore, workoutStore)
 	exerciseHandler := exercise.NewHandler(exerciseStore)
-	compareHandler  := ai.NewCompareHandler(providers)
+	compareHandler  := ai.NewCompareHandler(providers, aiRequestStore)
 
 	wgerClient := exercise.NewWgerClient()
 	var exerciseDBClient *exercise.ExerciseDBClient

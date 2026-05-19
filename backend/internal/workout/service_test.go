@@ -29,6 +29,7 @@ func TestGenerate_HappyPath(t *testing.T) {
 		&mock.UserStorage{},
 		map[string]ai.Provider{"mock": &mock.AIProvider{}},
 		newHub(),
+		nil,
 	)
 
 	result, err := svc.Generate(context.Background(), 1, workout.GenerateRequest{
@@ -53,6 +54,7 @@ func TestGenerate_UnknownProvider(t *testing.T) {
 		&mock.UserStorage{},
 		map[string]ai.Provider{"claude": &mock.AIProvider{}},
 		newHub(),
+		nil,
 	)
 
 	_, err := svc.Generate(context.Background(), 1, workout.GenerateRequest{
@@ -79,6 +81,7 @@ func TestGenerate_ProviderError(t *testing.T) {
 		&mock.UserStorage{},
 		map[string]ai.Provider{"mock": provider},
 		newHub(),
+		nil,
 	)
 
 	_, err := svc.Generate(context.Background(), 1, workout.GenerateRequest{
@@ -110,6 +113,7 @@ func TestGenerate_XPCalculation(t *testing.T) {
 			&mock.UserStorage{},
 			map[string]ai.Provider{"mock": &mock.AIProvider{}},
 			newHub(),
+			nil,
 		)
 		result, err := svc.Generate(context.Background(), 1, workout.GenerateRequest{
 			MuscleGroup:     "legs",
@@ -132,7 +136,7 @@ func TestComplete_HappyPath(t *testing.T) {
 	// Default workout mock: XPEarned=600, not completed.
 	// Default user mock: XP=0, Level=1.
 	// 600 XP crosses the 500 threshold → should reach level 2.
-	svc := workout.NewService(&mock.WorkoutStorage{}, &mock.UserStorage{}, nil, newHub())
+	svc := workout.NewService(&mock.WorkoutStorage{}, &mock.UserStorage{}, nil, newHub(), nil)
 
 	result, err := svc.Complete(context.Background(), 1, 1)
 	if err != nil {
@@ -164,7 +168,7 @@ func TestComplete_NoLevelUp(t *testing.T) {
 			return &database.User{ID: id, XP: 1000, Level: 2}, nil
 		},
 	}
-	svc := workout.NewService(workouts, users, nil, newHub())
+	svc := workout.NewService(workouts, users, nil, newHub(), nil)
 
 	result, err := svc.Complete(context.Background(), 1, 1)
 	if err != nil {
@@ -188,7 +192,7 @@ func TestComplete_AlreadyCompleted(t *testing.T) {
 			}, nil
 		},
 	}
-	svc := workout.NewService(workouts, &mock.UserStorage{}, nil, newHub())
+	svc := workout.NewService(workouts, &mock.UserStorage{}, nil, newHub(), nil)
 
 	_, err := svc.Complete(context.Background(), 1, 1)
 	if err == nil {
@@ -205,7 +209,7 @@ func TestComplete_WorkoutNotFound(t *testing.T) {
 			return nil, errors.New("sql: no rows in result set")
 		},
 	}
-	svc := workout.NewService(workouts, &mock.UserStorage{}, nil, newHub())
+	svc := workout.NewService(workouts, &mock.UserStorage{}, nil, newHub(), nil)
 
 	_, err := svc.Complete(context.Background(), 999, 1)
 	if err == nil {
@@ -225,7 +229,7 @@ func TestComplete_TransactionError(t *testing.T) {
 			return &database.User{ID: id, XP: 0, Level: 1}, nil
 		},
 	}
-	svc := workout.NewService(workouts, users, nil, newHub())
+	svc := workout.NewService(workouts, users, nil, newHub(), nil)
 
 	_, err := svc.Complete(context.Background(), 1, 1)
 	if err == nil {
@@ -248,7 +252,7 @@ func TestComplete_LevelUpAtBoundary(t *testing.T) {
 			return &database.User{ID: id, XP: 499, Level: 1}, nil
 		},
 	}
-	svc := workout.NewService(workouts, users, nil, newHub())
+	svc := workout.NewService(workouts, users, nil, newHub(), nil)
 
 	result, err := svc.Complete(context.Background(), 1, 1)
 	if err != nil {

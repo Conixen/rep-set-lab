@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/leonj/rep-set-lab/internal/ai"
 	"github.com/leonj/rep-set-lab/internal/database"
@@ -31,14 +32,15 @@ type UserStorage interface {
 }
 
 type Service struct {
-	workouts  Storage
-	users     UserStorage
-	providers map[string]ai.Provider
-	hub       *ws.Hub
+	workouts   Storage
+	users      UserStorage
+	providers  map[string]ai.Provider
+	hub        *ws.Hub
+	aiRequests *database.AIRequestStore
 }
 
-func NewService(workouts Storage, users UserStorage, providers map[string]ai.Provider, hub *ws.Hub) *Service {
-	return &Service{workouts: workouts, users: users, providers: providers, hub: hub}
+func NewService(workouts Storage, users UserStorage, providers map[string]ai.Provider, hub *ws.Hub, aiRequests *database.AIRequestStore) *Service {
+	return &Service{workouts: workouts, users: users, providers: providers, hub: hub, aiRequests: aiRequests}
 }
 
 type GenerateRequest struct {
@@ -70,7 +72,23 @@ func (s *Service) Generate(ctx context.Context, userID int64, req GenerateReques
 		Goals:           req.Goals,
 	}
 
+	start := time.Now()
 	response, usage, err := provider.GenerateWorkout(ctx, aiReq)
+	latencyMs := time.Since(start).Milliseconds()
+
+	if s.aiRequests != nil {
+		logEntry := &database.AIRequest{
+			UserID:       userID,
+			Provider:     req.AIProvider,
+			InputTokens:  usage.InputTokens,
+			OutputTokens: usage.OutputTokens,
+			CostUSD:      usage.CostUSD,
+			LatencyMs:    latencyMs,
+			ValidJSON:    err == nil,
+		}
+		_ = s.aiRequests.Log(ctx, logEntry)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("generate workout: %w", err)
 	}
