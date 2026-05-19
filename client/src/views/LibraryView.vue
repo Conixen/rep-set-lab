@@ -24,16 +24,24 @@
     <div v-if="loading" class="text-white/40 text-sm text-center py-8">Loading…</div>
     <p v-else-if="error" class="text-red-400 text-xs">{{ error }}</p>
 
-    <div v-else class="grid grid-cols-2 gap-3">
+    <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-3">
       <div
         v-for="ex in filteredExercises"
         :key="ex.id"
         class="bg-[#1e1e24] rounded-2xl p-4 space-y-2"
       >
-        <div class="h-16 bg-white/5 rounded-xl flex items-center justify-center text-white/20 text-xs">GIF</div>
+        <img
+          v-if="ex.gif_url || ex.thumbnail_url"
+          :src="(ex.gif_url || ex.thumbnail_url)!"
+          :alt="ex.name"
+          class="h-24 w-full object-cover rounded-xl bg-white/5"
+        />
+        <div v-else class="h-24 bg-white/5 rounded-xl flex items-center justify-center text-white/20 text-xs">
+          No image
+        </div>
         <p class="font-semibold text-sm">{{ ex.name }}</p>
         <div class="flex flex-wrap gap-1">
-          <span v-for="tag in [ex.muscle_group, ex.category].filter(Boolean)" :key="tag"
+          <span v-for="tag in [ex.muscle_group, ex.difficulty, ex.equipment].filter(Boolean)" :key="tag"
                 class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full">
             {{ tag }}
           </span>
@@ -48,10 +56,13 @@ import { ref, computed, onMounted } from 'vue'
 import { api } from '../api/client'
 
 interface Exercise {
-  id: number
-  name: string
-  muscle_group: string
-  category: string
+  id:            number
+  name:          string
+  muscle_group:  string
+  difficulty:    string
+  equipment:     string
+  thumbnail_url: string | null
+  gif_url:       string | null
 }
 
 const exercises   = ref<Exercise[]>([])
