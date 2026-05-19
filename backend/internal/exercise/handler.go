@@ -22,5 +22,8 @@ func (h *Handler) List(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list exercises"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"exercises": exercises})
+	if exercises == nil {
+		exercises = []*database.Exercise{}
+	}
+	c.JSON(http.StatusOK, exercises)
 }
