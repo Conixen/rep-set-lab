@@ -22,6 +22,13 @@
         class="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
       />
       <input
+        v-if="mode === 'Register'"
+        v-model="username"
+        type="text"
+        placeholder="Username"
+        class="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
+      />
+      <input
         v-model="password"
         type="password"
         placeholder="Password"
@@ -51,6 +58,7 @@ const router = useRouter()
 
 const mode     = ref<'Login' | 'Register'>('Login')
 const email    = ref('')
+const username = ref('')
 const password = ref('')
 const error    = ref('')
 const loading  = ref(false)
@@ -62,7 +70,7 @@ async function submit() {
     if (mode.value === 'Login') {
       await auth.login(email.value, password.value)
     } else {
-      await auth.register(email.value, password.value)
+      await auth.register(email.value, username.value, password.value)
     }
     router.push('/')
   } catch (e: unknown) {
