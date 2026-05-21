@@ -27,6 +27,20 @@ type AIUsageSummary struct {
 	ThisMonth     int     `db:"this_month"     json:"this_month"`
 }
 
+type AIRequestRow struct {
+	AIRequest
+	Username string `db:"username" json:"username"`
+}
+
+type AIProviderStat struct {
+	Provider     string  `db:"provider"      json:"provider"`
+	TotalCalls   int     `db:"total_calls"   json:"total_calls"`
+	ValidCalls   int     `db:"valid_calls"   json:"valid_calls"`
+	AvgLatencyMs int64   `db:"avg_latency_ms" json:"avg_latency_ms"`
+	AvgCostUSD   float64 `db:"avg_cost_usd"  json:"avg_cost_usd"`
+	TotalCostUSD float64 `db:"total_cost_usd" json:"total_cost_usd"`
+}
+
 type AIRequestStore struct {
 	db *sqlx.DB
 }
@@ -40,6 +54,41 @@ func (s *AIRequestStore) Log(ctx context.Context, r *AIRequest) error {
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`, r.UserID, r.WorkoutID, r.Provider, r.InputTokens, r.OutputTokens, r.CostUSD, r.LatencyMs, r.ValidJSON)
 	return err
+}
+
+func (s *AIRequestStore) ListAdmin(ctx context.Context, limit, offset int) ([]*AIRequestRow, error) {
+	var rows []*AIRequestRow
+	err := s.db.SelectContext(ctx, &rows, `
+		SELECT r.*, u.username
+		FROM ai_requests r
+		JOIN users u ON u.id = r.user_id
+		ORDER BY r.created_at DESC
+		LIMIT $1 OFFSET $2
+	`, limit, offset)
+	return rows, err
+}
+
+func (s *AIRequestStore) CountAll(ctx context.Context) (int, error) {
+	var count int
+	err := s.db.GetContext(ctx, &count, `SELECT COUNT(*) FROM ai_requests`)
+	return count, err
+}
+
+func (s *AIRequestStore) ProviderStats(ctx context.Context) ([]*AIProviderStat, error) {
+	var stats []*AIProviderStat
+	err := s.db.SelectContext(ctx, &stats, `
+		SELECT
+			provider,
+			COUNT(*)                              AS total_calls,
+			COUNT(*) FILTER (WHERE valid_json)    AS valid_calls,
+			COALESCE(AVG(latency_ms), 0)::BIGINT  AS avg_latency_ms,
+			COALESCE(AVG(cost_usd), 0)            AS avg_cost_usd,
+			COALESCE(SUM(cost_usd), 0)            AS total_cost_usd
+		FROM ai_requests
+		GROUP BY provider
+		ORDER BY total_calls DESC
+	`)
+	return stats, err
 }
 
 func (s *AIRequestStore) Summary(ctx context.Context, userID int64) (*AIUsageSummary, error) {

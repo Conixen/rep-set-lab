@@ -93,7 +93,7 @@ func main() {
 	}
 	syncSvc := exercise.NewSyncService(exerciseStore, wgerClient, exerciseDBClient)
 
-	adminHandler := admin.NewHandler(userStore, workoutStore, syncSvc)
+	adminHandler := admin.NewHandler(userStore, workoutStore, syncSvc, aiRequestStore)
 
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -130,6 +130,7 @@ func main() {
 		adminGroup.GET("/workouts/:id",        adminHandler.GetWorkout)
 		adminGroup.PUT("/workouts/:id",        adminHandler.UpdateWorkout)
 		adminGroup.POST("/exercises/sync",     adminHandler.SyncExercises)
+		adminGroup.GET("/ai-requests",         adminHandler.ListAIRequests)
 	}
 
 	r.GET("/ws", auth.WSMiddleware(cfg.JWTSecret), hub.Handler)

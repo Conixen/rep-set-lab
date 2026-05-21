@@ -35,14 +35,21 @@ type ExerciseSyncer interface {
 	Sync(ctx context.Context) (exercise.SyncResult, error)
 }
 
-type Handler struct {
-	users    UserStore
-	workouts WorkoutStore
-	syncer   ExerciseSyncer
+type AIRequestStore interface {
+	ListAdmin(ctx context.Context, limit, offset int) ([]*database.AIRequestRow, error)
+	CountAll(ctx context.Context) (int, error)
+	ProviderStats(ctx context.Context) ([]*database.AIProviderStat, error)
 }
 
-func NewHandler(users UserStore, workouts WorkoutStore, syncer ExerciseSyncer) *Handler {
-	return &Handler{users: users, workouts: workouts, syncer: syncer}
+type Handler struct {
+	users      UserStore
+	workouts   WorkoutStore
+	syncer     ExerciseSyncer
+	aiRequests AIRequestStore
+}
+
+func NewHandler(users UserStore, workouts WorkoutStore, syncer ExerciseSyncer, aiRequests AIRequestStore) *Handler {
+	return &Handler{users: users, workouts: workouts, syncer: syncer, aiRequests: aiRequests}
 }
 
 // --- Users ---
@@ -211,6 +218,43 @@ func (h *Handler) UpdateWorkout(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"workout": workout})
+}
+
+// --- Exercises ---
+
+// --- AI Requests ---
+
+func (h *Handler) ListAIRequests(c *gin.Context) {
+	const pageSize = 10
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+	offset := (page - 1) * pageSize
+
+	rows, err := h.aiRequests.ListAdmin(c.Request.Context(), pageSize, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list ai requests"})
+		return
+	}
+	total, err := h.aiRequests.CountAll(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to count ai requests"})
+		return
+	}
+	stats, err := h.aiRequests.ProviderStats(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get provider stats"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"requests":      rows,
+		"total":         total,
+		"page":          page,
+		"page_size":     pageSize,
+		"total_pages":   (total + pageSize - 1) / pageSize,
+		"provider_stats": stats,
+	})
 }
 
 // --- Exercises ---
