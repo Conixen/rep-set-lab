@@ -18,7 +18,7 @@ import (
 )
 
 func newHub() *ws.Hub {
-	return ws.NewHub(slog.New(slog.NewTextHandler(os.Stderr, nil)))
+	return ws.NewHub(slog.New(slog.NewTextHandler(os.Stderr, nil)), nil)
 }
 
 // --- Generate ---

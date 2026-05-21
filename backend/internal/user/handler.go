@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,12 +10,20 @@ import (
 	"github.com/leonj/rep-set-lab/internal/xp"
 )
 
-type Handler struct {
-	users    *database.UserStore
-	workouts *database.WorkoutStore
+type userReader interface {
+	GetByID(ctx context.Context, id int64) (*database.User, error)
 }
 
-func NewHandler(users *database.UserStore, workouts *database.WorkoutStore) *Handler {
+type workoutLister interface {
+	ListByUser(ctx context.Context, userID int64) ([]*database.Workout, error)
+}
+
+type Handler struct {
+	users    userReader
+	workouts workoutLister
+}
+
+func NewHandler(users userReader, workouts workoutLister) *Handler {
 	return &Handler{users: users, workouts: workouts}
 }
 
@@ -41,11 +50,12 @@ func (h *Handler) Stats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"username":            user.Username,
-		"xp":                  user.XP,
-		"level":               user.Level,
-		"next_level_xp":       xp.NextThreshold(user.Level),
-		"workouts_total":      len(workouts),
-		"workouts_completed":  completed,
+		"username":           user.Username,
+		"total_xp":           user.XP,
+		"level":              user.Level,
+		"current_level_xp":   xp.CurrentThreshold(user.Level),
+		"next_level_xp":      xp.NextThreshold(user.Level),
+		"workouts_total":     len(workouts),
+		"workouts_completed": completed,
 	})
 }
