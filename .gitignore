@@ -1,6 +1,7 @@
 # Environment
 .env
 backend/.env
+**/CLAUDE.md
 
 # Build output
 backend/bin/
