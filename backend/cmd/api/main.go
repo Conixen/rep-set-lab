@@ -78,7 +78,7 @@ func main() {
 		providers["gemini"] = g
 	}
 
-	hub             := ws.NewHub(logger)
+	hub             := ws.NewHub(logger, cfg.AllowedOrigins)
 	svc             := workout.NewService(workoutStore, userStore, providers, hub, aiRequestStore)
 	authHandler     := auth.NewHandler(userStore, cfg.JWTSecret)
 	workoutHandler  := workout.NewHandler(svc, workoutStore)
@@ -99,7 +99,7 @@ func main() {
 	r.Use(gin.Recovery())
 	r.Use(gin.Logger())
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowOrigins:     cfg.AllowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,

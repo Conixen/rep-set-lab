@@ -5,10 +5,18 @@ import (
 	"log/slog"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/leonj/rep-set-lab/internal/auth"
+)
+
+const (
+	pingInterval   = 30 * time.Second
+	pongDeadline   = 60 * time.Second
+	writeDeadline  = 10 * time.Second
+	maxMessageSize = 512
 )
 
 const EventXPUpdate = "xp_update"
@@ -25,17 +33,31 @@ type client struct {
 }
 
 type Hub struct {
-	mu      sync.RWMutex
-	clients map[int64]*client
-	logger  *slog.Logger
+	mu       sync.RWMutex
+	clients  map[int64]*client
+	logger   *slog.Logger
+	upgrader websocket.Upgrader
 }
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
-
-func NewHub(logger *slog.Logger) *Hub {
-	return &Hub{clients: make(map[int64]*client), logger: logger}
+func NewHub(logger *slog.Logger, allowedOrigins []string) *Hub {
+	allowed := make(map[string]struct{}, len(allowedOrigins))
+	for _, o := range allowedOrigins {
+		allowed[o] = struct{}{}
+	}
+	return &Hub{
+		clients: make(map[int64]*client),
+		logger:  logger,
+		upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				origin := r.Header.Get("Origin")
+				if origin == "" {
+					return true // non-browser clients (curl, mobile apps)
+				}
+				_, ok := allowed[origin]
+				return ok
+			},
+		},
+	}
 }
 
 // Broadcast sends an event to the connected client for the given userID.
@@ -65,7 +87,7 @@ func (h *Hub) Handler(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		h.logger.Error("ws: upgrade failed", "error", err)
 		return
@@ -85,6 +107,11 @@ func (h *Hub) readPump(c *client) {
 		h.remove(c.userID)
 		c.conn.Close()
 	}()
+	c.conn.SetReadLimit(maxMessageSize)
+	_ = c.conn.SetReadDeadline(time.Now().Add(pongDeadline))
+	c.conn.SetPongHandler(func(string) error {
+		return c.conn.SetReadDeadline(time.Now().Add(pongDeadline))
+	})
 	for {
 		if _, _, err := c.conn.ReadMessage(); err != nil {
 			break
@@ -93,9 +120,24 @@ func (h *Hub) readPump(c *client) {
 }
 
 func (h *Hub) writePump(c *client) {
-	for msg := range c.send {
-		if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
-			break
+	ticker := time.NewTicker(pingInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case msg, ok := <-c.send:
+			_ = c.conn.SetWriteDeadline(time.Now().Add(writeDeadline))
+			if !ok {
+				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+			if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+				return
+			}
+		case <-ticker.C:
+			_ = c.conn.SetWriteDeadline(time.Now().Add(writeDeadline))
+			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
 		}
 	}
 }
