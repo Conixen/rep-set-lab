@@ -84,7 +84,7 @@ function formatDate(iso: string) {
 
 function progressDelta(w: Workout): number | null {
   const prev = workouts.value.find(
-    x => x.id !== w.id && x.muscle_group === w.muscle_group && x.created_at < w.created_at
+    x => x.id !== w.id && x.muscle_group === w.muscle_group && new Date(x.created_at) < new Date(w.created_at)
   )
   if (!prev) return null
   const delta = w.duration_minutes - prev.duration_minutes

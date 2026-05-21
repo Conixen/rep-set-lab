@@ -35,11 +35,19 @@ func LevelForXP(totalXP int64) int {
 	return level
 }
 
-// NextThreshold returns the XP needed to reach the next level.
+// NextThreshold returns the total XP required to reach the next level.
 // Returns 0 when the user is already at max level.
 func NextThreshold(currentLevel int) int64 {
 	if currentLevel >= len(levelThresholds) {
 		return 0
 	}
 	return levelThresholds[currentLevel]
+}
+
+// CurrentThreshold returns the total XP at which the given level begins.
+func CurrentThreshold(level int) int64 {
+	if level <= 1 {
+		return 0
+	}
+	return levelThresholds[level-1]
 }
