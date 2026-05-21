@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -117,14 +118,31 @@ func (s *stubWorkoutStore) AdminSetCompleted(_ context.Context, id int64, comple
 	return sql.ErrNoRows
 }
 
-type stubSyncer struct{}
+type stubSyncer struct {
+	result exercise.SyncResult
+	err    error
+}
 
 func (s *stubSyncer) Sync(_ context.Context) (exercise.SyncResult, error) {
-	return exercise.SyncResult{Total: 0}, nil
+	return s.result, s.err
+}
+
+type stubAIRequestStore struct{}
+
+func (s *stubAIRequestStore) ListAdmin(_ context.Context, _, _ int) ([]*database.AIRequestRow, error) {
+	return nil, nil
+}
+func (s *stubAIRequestStore) CountAll(_ context.Context) (int, error) { return 0, nil }
+func (s *stubAIRequestStore) ProviderStats(_ context.Context) ([]*database.AIProviderStat, error) {
+	return nil, nil
 }
 
 // adminTestRouter injects admin claims (userID=1, version=1) and wires AdminMiddleware.
 func adminTestRouter(users *stubUserStore, workouts *stubWorkoutStore) *gin.Engine {
+	return adminTestRouterWithSyncer(users, workouts, &stubSyncer{})
+}
+
+func adminTestRouterWithSyncer(users *stubUserStore, workouts *stubWorkoutStore, syncer *stubSyncer) *gin.Engine {
 	r := gin.New()
 
 	r.Use(func(c *gin.Context) {
@@ -141,7 +159,7 @@ func adminTestRouter(users *stubUserStore, workouts *stubWorkoutStore) *gin.Engi
 	})
 	r.Use(auth.AdminMiddleware(users))
 
-	h := admin.NewHandler(users, workouts, &stubSyncer{})
+	h := admin.NewHandler(users, workouts, syncer, &stubAIRequestStore{})
 	r.GET("/admin/users", h.ListUsers)
 	r.GET("/admin/users/:id", h.GetUser)
 	r.PUT("/admin/users/:id", h.UpdateUser)
@@ -149,6 +167,7 @@ func adminTestRouter(users *stubUserStore, workouts *stubWorkoutStore) *gin.Engi
 	r.GET("/admin/workouts", h.ListWorkouts)
 	r.GET("/admin/workouts/:id", h.GetWorkout)
 	r.PUT("/admin/workouts/:id", h.UpdateWorkout)
+	r.POST("/admin/exercises/sync", h.SyncExercises)
 	return r
 }
 
@@ -376,6 +395,39 @@ func TestUpdateWorkout_NotFound(t *testing.T) {
 		t.Errorf("status = %d, want 404", w.Code)
 	}
 }
+
+// --- sync tests ---
+
+func TestSyncExercises_OK(t *testing.T) {
+	syncer := &stubSyncer{result: exercise.SyncResult{Total: 10, Thumbnails: 6, GIFs: 4}}
+	r := adminTestRouterWithSyncer(&stubUserStore{}, &stubWorkoutStore{}, syncer)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/admin/exercises/sync", nil))
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	var body map[string]any
+	json.NewDecoder(w.Body).Decode(&body)
+	if int(body["total"].(float64)) != 10 {
+		t.Errorf("total = %v, want 10", body["total"])
+	}
+}
+
+func TestSyncExercises_Error(t *testing.T) {
+	syncer := &stubSyncer{err: errors.New("db failure")}
+	r := adminTestRouterWithSyncer(&stubUserStore{}, &stubWorkoutStore{}, syncer)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/admin/exercises/sync", nil))
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", w.Code)
+	}
+}
+
+// --- middleware tests ---
 
 func TestAdminMiddleware_UserForbidden(t *testing.T) {
 	store := &stubUserStore{}

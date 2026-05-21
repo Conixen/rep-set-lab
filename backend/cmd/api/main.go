@@ -87,7 +87,7 @@ func main() {
 	compareHandler  := ai.NewCompareHandler(providers, aiRequestStore)
 
 	wgerClient := exercise.NewWgerClient()
-	var exerciseDBClient *exercise.ExerciseDBClient
+	var exerciseDBClient exercise.GIFFetcher
 	if cfg.ExerciseDBKey != "" {
 		exerciseDBClient = exercise.NewExerciseDBClient(cfg.ExerciseDBKey)
 	}

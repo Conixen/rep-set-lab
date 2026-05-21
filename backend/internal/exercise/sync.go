@@ -20,13 +20,24 @@ type exerciseMediaStore interface {
 	UpdateMedia(ctx context.Context, id int64, thumbnailURL, gifURL string) error
 }
 
-type SyncService struct {
-	exercises  exerciseMediaStore
-	wger       *WgerClient
-	exerciseDB *ExerciseDBClient // nil when EXERCISEDB_API_KEY is not set
+type thumbnailFetcher interface {
+	FetchThumbnail(ctx context.Context, name string) (string, error)
 }
 
-func NewSyncService(exercises exerciseMediaStore, wger *WgerClient, exerciseDB *ExerciseDBClient) *SyncService {
+// GIFFetcher is satisfied by *ExerciseDBClient. Exported so callers can declare
+// a nil interface value when no ExerciseDB key is configured, avoiding the
+// typed-nil-in-interface pitfall.
+type GIFFetcher interface {
+	FetchGIF(ctx context.Context, name string) (string, error)
+}
+
+type SyncService struct {
+	exercises  exerciseMediaStore
+	wger       thumbnailFetcher
+	exerciseDB GIFFetcher // nil when EXERCISEDB_API_KEY is not set
+}
+
+func NewSyncService(exercises exerciseMediaStore, wger thumbnailFetcher, exerciseDB GIFFetcher) *SyncService {
 	return &SyncService{exercises: exercises, wger: wger, exerciseDB: exerciseDB}
 }
 
