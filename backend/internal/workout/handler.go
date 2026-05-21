@@ -2,6 +2,7 @@ package workout
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -63,7 +64,11 @@ func (h *Handler) Generate(c *gin.Context) {
 		AIProvider:      req.AIProvider,
 	})
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if errors.Is(err, ErrUnknownProvider) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate workout"})
+		}
 		return
 	}
 
@@ -113,7 +118,14 @@ func (h *Handler) Complete(c *gin.Context) {
 	claims := auth.GetClaims(c)
 	result, err := h.service.Complete(c.Request.Context(), id, claims.UserID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		switch {
+		case errors.Is(err, ErrNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "workout not found"})
+		case errors.Is(err, ErrAlreadyCompleted):
+			c.JSON(http.StatusConflict, gin.H{"error": "workout already completed"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to complete workout"})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, result)

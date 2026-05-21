@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -13,6 +15,12 @@ import (
 	"github.com/leonj/rep-set-lab/internal/database"
 	"github.com/leonj/rep-set-lab/internal/ws"
 	"github.com/leonj/rep-set-lab/internal/xp"
+)
+
+var (
+	ErrNotFound         = errors.New("workout not found")
+	ErrAlreadyCompleted = errors.New("workout already completed")
+	ErrUnknownProvider  = errors.New("unknown provider")
 )
 
 // Storage and UserStorage are defined here so the service depends on interfaces,
@@ -31,15 +39,19 @@ type UserStorage interface {
 	GetByID(ctx context.Context, id int64) (*database.User, error)
 }
 
+type AILogger interface {
+	Log(ctx context.Context, req *database.AIRequest) error
+}
+
 type Service struct {
 	workouts   Storage
 	users      UserStorage
 	providers  map[string]ai.Provider
 	hub        *ws.Hub
-	aiRequests *database.AIRequestStore
+	aiRequests AILogger
 }
 
-func NewService(workouts Storage, users UserStorage, providers map[string]ai.Provider, hub *ws.Hub, aiRequests *database.AIRequestStore) *Service {
+func NewService(workouts Storage, users UserStorage, providers map[string]ai.Provider, hub *ws.Hub, aiRequests AILogger) *Service {
 	return &Service{workouts: workouts, users: users, providers: providers, hub: hub, aiRequests: aiRequests}
 }
 
@@ -61,7 +73,7 @@ type GenerateResult struct {
 func (s *Service) Generate(ctx context.Context, userID int64, req GenerateRequest) (*GenerateResult, error) {
 	provider, ok := s.providers[req.AIProvider]
 	if !ok {
-		return nil, fmt.Errorf("unknown ai_provider '%s': valid values are %s", req.AIProvider, s.validProviders())
+		return nil, fmt.Errorf("%w '%s': valid values are %s", ErrUnknownProvider, req.AIProvider, s.validProviders())
 	}
 
 	aiReq := ai.WorkoutRequest{
@@ -86,7 +98,9 @@ func (s *Service) Generate(ctx context.Context, userID int64, req GenerateReques
 			LatencyMs:    latencyMs,
 			ValidJSON:    err == nil,
 		}
-		_ = s.aiRequests.Log(ctx, logEntry)
+		if logErr := s.aiRequests.Log(ctx, logEntry); logErr != nil {
+			slog.Default().Warn("failed to log ai request", "error", logErr)
+		}
 	}
 
 	if err != nil {
@@ -127,10 +141,10 @@ type CompleteResult struct {
 func (s *Service) Complete(ctx context.Context, workoutID, userID int64) (*CompleteResult, error) {
 	workout, err := s.workouts.GetByID(ctx, workoutID, userID)
 	if err != nil {
-		return nil, fmt.Errorf("workout not found")
+		return nil, ErrNotFound
 	}
 	if workout.CompletedAt.Valid {
-		return nil, fmt.Errorf("workout already completed")
+		return nil, ErrAlreadyCompleted
 	}
 
 	user, err := s.users.GetByID(ctx, userID)
