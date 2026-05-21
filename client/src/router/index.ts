@@ -4,8 +4,10 @@ import LoginView   from '../views/LoginView.vue'
 import HomeView    from '../views/HomeView.vue'
 import LibraryView from '../views/LibraryView.vue'
 import AiView      from '../views/AiView.vue'
+import CompareView from '../views/CompareView.vue'
 import HistoryView from '../views/HistoryView.vue'
 import ProfileView from '../views/ProfileView.vue'
+import AdminView   from '../views/AdminView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -14,14 +16,17 @@ const router = createRouter({
     { path: '/',         component: HomeView },
     { path: '/library',  component: LibraryView },
     { path: '/ai',       component: AiView },
+    { path: '/compare',  component: CompareView },
     { path: '/history',  component: HistoryView },
     { path: '/profile',  component: ProfileView },
+    { path: '/admin',    component: AdminView,   meta: { admin: true } },
   ],
 })
 
 router.beforeEach((to) => {
   const auth = useAuthStore()
   if (!to.meta.public && !auth.isLoggedIn) return '/login'
+  if (to.meta.admin && !auth.isAdmin) return '/'
 })
 
 export default router

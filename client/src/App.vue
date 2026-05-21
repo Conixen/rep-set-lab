@@ -47,24 +47,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import IconHome    from './components/icons/IconHome.vue'
 import IconLibrary from './components/icons/IconLibrary.vue'
 import IconAi      from './components/icons/IconAi.vue'
+import IconCompare from './components/icons/IconCompare.vue'
 import IconHistory from './components/icons/IconHistory.vue'
 import IconProfile from './components/icons/IconProfile.vue'
+import IconAdmin   from './components/icons/IconAdmin.vue'
 
 const auth = useAuthStore()
 
-const tabs = [
+const baseTabs = [
   { to: '/',        label: 'Home',    icon: IconHome },
   { to: '/library', label: 'Library', icon: IconLibrary },
   { to: '/ai',      label: 'AI',      icon: IconAi },
+  { to: '/compare', label: 'Compare', icon: IconCompare },
   { to: '/history', label: 'History', icon: IconHistory },
   { to: '/profile', label: 'Profile', icon: IconProfile },
 ]
+
+const adminTab = { to: '/admin', label: 'Admin', icon: IconAdmin }
+
+const tabs = computed(() =>
+  auth.isAdmin ? [...baseTabs, adminTab] : baseTabs
+)
 
 const toast = ref<string | null>(null)
 let ws: WebSocket | null = null
