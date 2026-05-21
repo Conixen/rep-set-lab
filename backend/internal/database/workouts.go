@@ -57,14 +57,6 @@ func (s *WorkoutStore) ListByUser(ctx context.Context, userID int64) ([]*Workout
 	return workouts, err
 }
 
-func (s *WorkoutStore) Complete(ctx context.Context, id, userID int64) error {
-	_, err := s.db.ExecContext(ctx, `
-		UPDATE workouts SET completed_at = NOW()
-		WHERE id = $1 AND user_id = $2 AND completed_at IS NULL
-	`, id, userID)
-	return err
-}
-
 func (s *WorkoutStore) ListAll(ctx context.Context) ([]*Workout, error) {
 	var workouts []*Workout
 	err := s.db.SelectContext(ctx, &workouts, `SELECT * FROM workouts ORDER BY created_at DESC`)
