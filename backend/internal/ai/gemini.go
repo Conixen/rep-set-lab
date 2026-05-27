@@ -11,28 +11,29 @@ import (
 )
 
 const (
-	geminiModel      = "gemini-1.5-pro"
-	geminiInputCost  = 0.00000125 // $1.25 per 1M input tokens
-	geminiOutputCost = 0.000005   // $5.00 per 1M output tokens
+	geminiInputCost  = 0.00000125
+	geminiOutputCost = 0.000005
 )
 
 type GeminiProvider struct {
 	client *genai.Client
+	model  string
+	name   string
 }
 
-// NewGemini creates the Gemini client once at startup, not per-request.
-func NewGemini(apiKey string) (*GeminiProvider, error) {
+// NewGemini creates a Gemini provider for the given model name.
+func NewGemini(apiKey, model, providerName string) (*GeminiProvider, error) {
 	client, err := genai.NewClient(context.Background(), option.WithAPIKey(apiKey))
 	if err != nil {
 		return nil, fmt.Errorf("gemini: create client: %w", err)
 	}
-	return &GeminiProvider{client: client}, nil
+	return &GeminiProvider{client: client, model: model, name: providerName}, nil
 }
 
-func (p *GeminiProvider) Name() string { return "gemini" }
+func (p *GeminiProvider) Name() string { return p.name }
 
 func (p *GeminiProvider) GenerateWorkout(ctx context.Context, req WorkoutRequest) (WorkoutResponse, Usage, error) {
-	model := p.client.GenerativeModel(geminiModel)
+	model := p.client.GenerativeModel(p.model)
 	model.SystemInstruction = &genai.Content{
 		Parts: []genai.Part{genai.Text(systemPrompt)},
 	}

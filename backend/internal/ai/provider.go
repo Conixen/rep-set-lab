@@ -11,6 +11,7 @@ type WorkoutRequest struct {
 	DurationMinutes int
 	Injuries        string
 	Goals           string
+	Environment     string
 }
 
 type Exercise struct {
@@ -42,7 +43,7 @@ type Provider interface {
 	GenerateWorkout(ctx context.Context, req WorkoutRequest) (WorkoutResponse, Usage, error)
 }
 
-const systemPrompt = `You are an expert personal trainer. Generate a structured gym workout based on the user's input.
+const systemPrompt = `You are an expert personal trainer. Generate a structured workout appropriate for the user's training environment and input.
 
 Always respond with valid JSON matching this exact structure:
 {
@@ -60,8 +61,22 @@ Rules:
 - Use 0 for fields that don't apply (e.g. reps for timed exercises)
 - Respond ONLY with the JSON object, no markdown fences, no explanation`
 
+// environmentDescription maps the environment key to a human-readable description
+// that gives the AI enough context to select appropriate exercises.
+func environmentDescription(env string) string {
+	switch env {
+	case "home":
+		return "home (bodyweight and minimal equipment only — no barbells, cables, or gym machines)"
+	case "outdoor":
+		return "outdoor (no equipment — use bodyweight, open space, and natural terrain)"
+	default:
+		return "gym (full equipment available — barbells, cables, machines, dumbbells)"
+	}
+}
+
 func buildUserPrompt(req WorkoutRequest) string {
 	prompt := fmt.Sprintf("Muscle group: %s\nDuration: %d minutes\n", req.MuscleGroup, req.DurationMinutes)
+	prompt += fmt.Sprintf("Training environment: %s\n", environmentDescription(req.Environment))
 	if req.Injuries != "" {
 		prompt += fmt.Sprintf("Injuries/limitations: %s\n", req.Injuries)
 	}

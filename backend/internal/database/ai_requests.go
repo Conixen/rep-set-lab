@@ -2,22 +2,24 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 )
 
 type AIRequest struct {
-	ID           int64     `db:"id"            json:"id"`
-	UserID       int64     `db:"user_id"       json:"user_id"`
-	WorkoutID    *int64    `db:"workout_id"    json:"workout_id"`
-	Provider     string    `db:"provider"      json:"provider"`
-	InputTokens  int       `db:"input_tokens"  json:"input_tokens"`
-	OutputTokens int       `db:"output_tokens" json:"output_tokens"`
-	CostUSD      float64   `db:"cost_usd"      json:"cost_usd"`
-	LatencyMs    int64     `db:"latency_ms"    json:"latency_ms"`
-	ValidJSON    bool      `db:"valid_json"    json:"valid_json"`
-	CreatedAt    time.Time `db:"created_at"    json:"created_at"`
+	ID           int64          `db:"id"            json:"id"`
+	UserID       int64          `db:"user_id"       json:"user_id"`
+	WorkoutID    *int64         `db:"workout_id"    json:"workout_id"`
+	Provider     string         `db:"provider"      json:"provider"`
+	InputTokens  int            `db:"input_tokens"  json:"input_tokens"`
+	OutputTokens int            `db:"output_tokens" json:"output_tokens"`
+	CostUSD      float64        `db:"cost_usd"      json:"cost_usd"`
+	LatencyMs    int64          `db:"latency_ms"    json:"latency_ms"`
+	ValidJSON    bool           `db:"valid_json"    json:"valid_json"`
+	ErrorMessage sql.NullString `db:"error_message" json:"error_message"`
+	CreatedAt    time.Time      `db:"created_at"    json:"created_at"`
 }
 
 type AIUsageSummary struct {
@@ -50,9 +52,9 @@ func NewAIRequestStore(db *sqlx.DB) *AIRequestStore { return &AIRequestStore{db:
 func (s *AIRequestStore) Log(ctx context.Context, r *AIRequest) error {
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO ai_requests
-			(user_id, workout_id, provider, input_tokens, output_tokens, cost_usd, latency_ms, valid_json)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	`, r.UserID, r.WorkoutID, r.Provider, r.InputTokens, r.OutputTokens, r.CostUSD, r.LatencyMs, r.ValidJSON)
+			(user_id, workout_id, provider, input_tokens, output_tokens, cost_usd, latency_ms, valid_json, error_message)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	`, r.UserID, r.WorkoutID, r.Provider, r.InputTokens, r.OutputTokens, r.CostUSD, r.LatencyMs, r.ValidJSON, r.ErrorMessage)
 	return err
 }
 

@@ -62,6 +62,7 @@ type GenerateRequest struct {
 	Injuries        string
 	Goals           string
 	AIProvider      string
+	Environment     string // Environment is where the user is training: "gym" (default), "home", or "outdoor".
 }
 
 type GenerateResult struct {
@@ -82,6 +83,7 @@ func (s *Service) Generate(ctx context.Context, userID int64, req GenerateReques
 		DurationMinutes: req.DurationMinutes,
 		Injuries:        req.Injuries,
 		Goals:           req.Goals,
+		Environment:     req.Environment,
 	}
 
 	start := time.Now()
@@ -97,6 +99,9 @@ func (s *Service) Generate(ctx context.Context, userID int64, req GenerateReques
 			CostUSD:      usage.CostUSD,
 			LatencyMs:    latencyMs,
 			ValidJSON:    err == nil,
+		}
+		if err != nil {
+			logEntry.ErrorMessage = sql.NullString{String: err.Error(), Valid: true}
 		}
 		if logErr := s.aiRequests.Log(ctx, logEntry); logErr != nil {
 			slog.Default().Warn("failed to log ai request", "error", logErr)

@@ -3,6 +3,7 @@ package workout
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -30,6 +31,7 @@ type generateRequest struct {
 	Injuries        string `json:"injuries"`
 	Goals           string `json:"goals"`
 	AIProvider      string `json:"ai_provider"`
+	Environment     string `json:"environment"` // optional; omitting defaults to "gym" in the AI layer
 }
 
 func (h *Handler) Generate(c *gin.Context) {
@@ -62,11 +64,13 @@ func (h *Handler) Generate(c *gin.Context) {
 		Injuries:        req.Injuries,
 		Goals:           req.Goals,
 		AIProvider:      req.AIProvider,
+		Environment:     req.Environment,
 	})
 	if err != nil {
 		if errors.Is(err, ErrUnknownProvider) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		} else {
+			slog.Error("workout generation failed", "provider", req.AIProvider, "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate workout"})
 		}
 		return
