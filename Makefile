@@ -1,4 +1,4 @@
-.PHONY: run build test lint client dev
+.PHONY: run build test lint client dev stop start test-provider
 
 run:
 	cd backend && go run ./cmd/api
@@ -17,3 +17,11 @@ client:
 
 dev:
 	$(MAKE) -j2 run client
+
+stop:
+	powershell -ExecutionPolicy Bypass -Command "Get-NetTCPConnection -LocalPort 8080,5173 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id \$$_.OwningProcess -Force -ErrorAction SilentlyContinue }; Write-Host 'Stopped'"
+
+start: stop dev
+
+test-provider:
+	cd backend && go run ./cmd/test-provider

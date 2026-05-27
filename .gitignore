@@ -1,6 +1,11 @@
-# Environment
+# Environment / secrets — NEVER commit these
 .env
+.env.local
+.env.*.local
 backend/.env
+client/.env
+client/.env.local
+client/.env.*.local
 **/CLAUDE.md
 
 # Build output
