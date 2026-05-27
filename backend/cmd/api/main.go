@@ -51,10 +51,10 @@ func main() {
 	}
 	logger.Info("migrations applied")
 
-	userStore        := database.NewUserStore(db)
-	workoutStore     := database.NewWorkoutStore(db)
-	exerciseStore    := database.NewExerciseStore(db)
-	aiRequestStore   := database.NewAIRequestStore(db)
+	userStore      := database.NewUserStore(db)
+	workoutStore   := database.NewWorkoutStore(db)
+	exerciseStore  := database.NewExerciseStore(db)
+	aiRequestStore := database.NewAIRequestStore(db)
 
 	// Seed exercise library (ON CONFLICT DO NOTHING — safe to run every boot)
 	if err := exerciseStore.Seed(context.Background(), exercise.DefaultExercises()); err != nil {
@@ -70,12 +70,18 @@ func main() {
 		providers["openai"] = ai.NewOpenAI(cfg.OpenAIKey)
 	}
 	if cfg.GeminiKey != "" {
-		g, err := ai.NewGemini(cfg.GeminiKey)
-		if err != nil {
-			logger.Error("init gemini provider", "error", err)
-			os.Exit(1)
+		geminiModels := []struct{ id, name string }{
+			{"gemini-2.5-flash", "gemini-2.5-flash"},
+			{"gemini-2.5-pro",   "gemini-2.5-pro"},
 		}
-		providers["gemini"] = g
+		for _, m := range geminiModels {
+			g, err := ai.NewGemini(cfg.GeminiKey, m.id, m.name)
+			if err != nil {
+				logger.Error("init gemini provider", "error", err, "model", m.id)
+				os.Exit(1)
+			}
+			providers[m.name] = g
+		}
 	}
 
 	hub             := ws.NewHub(logger, cfg.AllowedOrigins)
@@ -83,15 +89,14 @@ func main() {
 	authHandler     := auth.NewHandler(userStore, cfg.JWTSecret)
 	workoutHandler  := workout.NewHandler(svc, workoutStore)
 	userHandler     := user.NewHandler(userStore, workoutStore)
-	exerciseHandler := exercise.NewHandler(exerciseStore)
+	exerciseHandler := exercise.NewHandler(exerciseStore, cfg.ExerciseDBKey)
 	compareHandler  := ai.NewCompareHandler(providers, aiRequestStore)
 
-	wgerClient := exercise.NewWgerClient()
 	var exerciseDBClient exercise.GIFFetcher
 	if cfg.ExerciseDBKey != "" {
 		exerciseDBClient = exercise.NewExerciseDBClient(cfg.ExerciseDBKey)
 	}
-	syncSvc := exercise.NewSyncService(exerciseStore, wgerClient, exerciseDBClient)
+	syncSvc := exercise.NewSyncService(exerciseStore, exerciseDBClient)
 
 	adminHandler := admin.NewHandler(userStore, workoutStore, syncSvc, aiRequestStore)
 
@@ -106,8 +111,9 @@ func main() {
 	}))
 
 	v1 := r.Group("/api/v1")
-	v1.POST("/auth/register", authHandler.Register)
-	v1.POST("/auth/login",    authHandler.Login)
+	v1.POST("/auth/register",                authHandler.Register)
+	v1.POST("/auth/login",                   authHandler.Login)
+	v1.GET("/exercises/image/:exerciseid",   exerciseHandler.ProxyImage) // public — img tags can't send Bearer
 
 	protected := v1.Group("", auth.Middleware(cfg.JWTSecret))
 	{

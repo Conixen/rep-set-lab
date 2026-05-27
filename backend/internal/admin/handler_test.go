@@ -399,7 +399,7 @@ func TestUpdateWorkout_NotFound(t *testing.T) {
 // --- sync tests ---
 
 func TestSyncExercises_OK(t *testing.T) {
-	syncer := &stubSyncer{result: exercise.SyncResult{Total: 10, Thumbnails: 6, GIFs: 4}}
+	syncer := &stubSyncer{result: exercise.SyncResult{Total: 10, GIFs: 4}}
 	r := adminTestRouterWithSyncer(&stubUserStore{}, &stubWorkoutStore{}, syncer)
 
 	w := httptest.NewRecorder()

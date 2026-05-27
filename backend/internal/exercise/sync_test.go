@@ -33,15 +33,6 @@ func (s *stubExerciseStore) UpdateMedia(_ context.Context, id int64, thumbnail, 
 	return nil
 }
 
-type stubThumbFetcher struct {
-	url string
-	err error
-}
-
-func (s *stubThumbFetcher) FetchThumbnail(_ context.Context, _ string) (string, error) {
-	return s.url, s.err
-}
-
 type stubGIFFetcher struct {
 	url string
 	err error
@@ -60,11 +51,11 @@ func validStr(v string) database.NullString {
 
 // --- tests ---
 
-func TestSync_AllPopulated_NoAPICalls(t *testing.T) {
+func TestSync_GIFAlreadyPopulated_NoAPICalls(t *testing.T) {
 	store := &stubExerciseStore{exercises: []*database.Exercise{
-		{ID: 1, Name: "Squat", ThumbnailURL: validStr("https://t.co/sq.png"), GifURL: validStr("https://g.co/sq.gif")},
+		{ID: 1, Name: "Squat", GifURL: validStr("/api/v1/exercises/image/0001")},
 	}}
-	svc := exercise.NewSyncService(store, &stubThumbFetcher{}, &stubGIFFetcher{})
+	svc := exercise.NewSyncService(store, &stubGIFFetcher{})
 
 	result, err := svc.Sync(context.Background())
 	if err != nil {
@@ -73,97 +64,53 @@ func TestSync_AllPopulated_NoAPICalls(t *testing.T) {
 	if result.Total != 1 {
 		t.Errorf("Total = %d, want 1", result.Total)
 	}
-	if result.Thumbnails != 0 || result.GIFs != 0 || result.Errors != 0 {
-		t.Errorf("want no increments, got Thumbnails=%d GIFs=%d Errors=%d", result.Thumbnails, result.GIFs, result.Errors)
+	if result.GIFs != 0 || result.Errors != 0 {
+		t.Errorf("want no increments, got GIFs=%d Errors=%d", result.GIFs, result.Errors)
 	}
 	if len(store.mediaUpdates) != 0 {
 		t.Errorf("expected no UpdateMedia calls, got %v", store.mediaUpdates)
 	}
 }
 
-func TestSync_MissingThumbnail(t *testing.T) {
-	store := &stubExerciseStore{exercises: []*database.Exercise{
-		{ID: 2, Name: "Bench Press", ThumbnailURL: nullStr(), GifURL: validStr("https://g.co/bp.gif")},
-	}}
-	svc := exercise.NewSyncService(store, &stubThumbFetcher{url: "https://t.co/bp.png"}, nil)
-
-	result, err := svc.Sync(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if result.Thumbnails != 1 || result.GIFs != 0 || result.Errors != 0 {
-		t.Errorf("want Thumbnails=1, got %+v", result)
-	}
-	if store.mediaUpdates[2][0] != "https://t.co/bp.png" {
-		t.Errorf("thumbnail not saved, updates=%v", store.mediaUpdates)
-	}
-}
-
 func TestSync_MissingGIF(t *testing.T) {
 	store := &stubExerciseStore{exercises: []*database.Exercise{
-		{ID: 3, Name: "Deadlift", ThumbnailURL: validStr("https://t.co/dl.png"), GifURL: nullStr()},
+		{ID: 3, Name: "Deadlift", GifURL: nullStr()},
 	}}
-	svc := exercise.NewSyncService(store, &stubThumbFetcher{}, &stubGIFFetcher{url: "https://g.co/dl.gif"})
+	svc := exercise.NewSyncService(store, &stubGIFFetcher{url: "/api/v1/exercises/image/0002"})
 
 	result, err := svc.Sync(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.GIFs != 1 || result.Thumbnails != 0 || result.Errors != 0 {
+	if result.GIFs != 1 || result.Errors != 0 {
 		t.Errorf("want GIFs=1, got %+v", result)
 	}
-	if store.mediaUpdates[3][1] != "https://g.co/dl.gif" {
+	if store.mediaUpdates[3][1] != "/api/v1/exercises/image/0002" {
 		t.Errorf("gif not saved, updates=%v", store.mediaUpdates)
 	}
 }
 
-func TestSync_BothMissing(t *testing.T) {
+func TestSync_NoExerciseDBKey_SkipsAll(t *testing.T) {
 	store := &stubExerciseStore{exercises: []*database.Exercise{
-		{ID: 4, Name: "Curl", ThumbnailURL: nullStr(), GifURL: nullStr()},
+		{ID: 4, Name: "Curl", GifURL: nullStr()},
 	}}
-	svc := exercise.NewSyncService(store,
-		&stubThumbFetcher{url: "https://t.co/curl.png"},
-		&stubGIFFetcher{url: "https://g.co/curl.gif"},
-	)
+	// nil exerciseDB simulates EXERCISEDB_API_KEY not configured
+	svc := exercise.NewSyncService(store, nil)
 
 	result, err := svc.Sync(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.Thumbnails != 1 || result.GIFs != 1 || result.Errors != 0 {
-		t.Errorf("want Thumbnails=1 GIFs=1 Errors=0, got %+v", result)
-	}
-}
-
-func TestSync_ThumbnailFetchError_IncrementsErrors(t *testing.T) {
-	store := &stubExerciseStore{exercises: []*database.Exercise{
-		{ID: 5, Name: "Pullup", ThumbnailURL: nullStr(), GifURL: nullStr()},
-	}}
-	svc := exercise.NewSyncService(store,
-		&stubThumbFetcher{err: errors.New("wger unavailable")},
-		&stubGIFFetcher{url: "https://g.co/pullup.gif"},
-	)
-
-	result, err := svc.Sync(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if result.Errors != 1 {
-		t.Errorf("Errors = %d, want 1", result.Errors)
-	}
-	if result.GIFs != 1 {
-		t.Errorf("GIFs = %d, want 1 (GIF should still succeed despite thumb error)", result.GIFs)
+	if result.GIFs != 0 || result.Errors != 0 {
+		t.Errorf("expected no updates with nil exerciseDB, got %+v", result)
 	}
 }
 
 func TestSync_GIFFetchError_IncrementsErrors(t *testing.T) {
 	store := &stubExerciseStore{exercises: []*database.Exercise{
-		{ID: 6, Name: "Row", ThumbnailURL: validStr("https://t.co/row.png"), GifURL: nullStr()},
+		{ID: 6, Name: "Row", GifURL: nullStr()},
 	}}
-	svc := exercise.NewSyncService(store,
-		&stubThumbFetcher{},
-		&stubGIFFetcher{err: errors.New("rapidapi unavailable")},
-	)
+	svc := exercise.NewSyncService(store, &stubGIFFetcher{err: errors.New("rapidapi unavailable")})
 
 	result, err := svc.Sync(context.Background())
 	if err != nil {
@@ -177,14 +124,11 @@ func TestSync_GIFFetchError_IncrementsErrors(t *testing.T) {
 func TestSync_UpdateMediaError_IncrementsErrors(t *testing.T) {
 	store := &stubExerciseStore{
 		exercises: []*database.Exercise{
-			{ID: 7, Name: "Lunge", ThumbnailURL: nullStr(), GifURL: nullStr()},
+			{ID: 7, Name: "Lunge", GifURL: nullStr()},
 		},
 		updateErr: errors.New("db write failed"),
 	}
-	svc := exercise.NewSyncService(store,
-		&stubThumbFetcher{url: "https://t.co/lunge.png"},
-		&stubGIFFetcher{url: "https://g.co/lunge.gif"},
-	)
+	svc := exercise.NewSyncService(store, &stubGIFFetcher{url: "/api/v1/exercises/image/0003"})
 
 	result, err := svc.Sync(context.Background())
 	if err != nil {

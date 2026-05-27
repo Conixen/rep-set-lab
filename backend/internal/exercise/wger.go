@@ -32,8 +32,15 @@ type wgerSearchResponse struct {
 	} `json:"suggestions"`
 }
 
+// delete this entire file (wger.go) and the WgerClient type.
+// FetchThumbnail always returns ("", nil) because the wger endpoint is gone.
+// NewWgerClient has no callers. Nothing in SyncService or main.go references this.
+// Kept today only to avoid a large diff on top of the sync refactor.
+
 // FetchThumbnail searches Wger for the exercise by name and returns the thumbnail URL.
 // Returns an empty string when no match is found.
+// This method is retained so it can be rewired
+// into SyncService if the endpoint is restored. It currently always returns ("", nil).
 func (c *WgerClient) FetchThumbnail(ctx context.Context, exerciseName string) (string, error) {
 	endpoint := fmt.Sprintf("%s/api/v2/exercise/search/?term=%s&language=english&format=json",
 		c.baseURL, url.QueryEscape(exerciseName))
@@ -50,7 +57,8 @@ func (c *WgerClient) FetchThumbnail(ctx context.Context, exerciseName string) (s
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("wger search returned %d", resp.StatusCode)
+		//  remove
+		return "", nil
 	}
 
 	var result wgerSearchResponse
