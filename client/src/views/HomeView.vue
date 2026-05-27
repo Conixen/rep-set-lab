@@ -16,13 +16,18 @@
     <template v-else>
       <!-- XP bar -->
       <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-2">
-        <div class="flex justify-between text-sm text-white/50">
-          <span>XP Progress</span>
-          <span class="text-white">{{ stats?.total_xp ?? 0 }} XP</span>
+        <div class="flex justify-between items-baseline">
+          <span class="text-white/50 text-sm">Total XP</span>
+          <span class="text-white/40 text-xs">Next level: {{ stats?.next_level_xp ?? '—' }} XP</span>
+        </div>
+        <div class="flex items-baseline gap-1.5">
+          <span class="text-2xl font-bold">{{ stats?.total_xp ?? 0 }}</span>
+          <span class="text-sm text-white/40">XP</span>
         </div>
         <div class="h-2 bg-white/10 rounded-full overflow-hidden">
-          <div class="h-full bg-violet-500 rounded-full" :style="{ width: xpPercent + '%' }"></div>
+          <div class="h-full bg-violet-500 rounded-full transition-all" :style="{ width: xpPercent + '%' }"></div>
         </div>
+        <p class="text-xs text-white/30 text-right">{{ xpToNext }} XP to go</p>
       </div>
 
       <!-- This week -->
@@ -67,6 +72,11 @@ const xpPercent = computed(() => {
   const { total_xp, current_level_xp, next_level_xp } = stats.value
   if (next_level_xp === 0) return 100 // max level
   return Math.min(((total_xp - current_level_xp) / (next_level_xp - current_level_xp)) * 100, 100)
+})
+
+const xpToNext = computed(() => {
+  if (!stats.value || stats.value.next_level_xp === 0) return 0
+  return Math.max(stats.value.next_level_xp - stats.value.total_xp, 0)
 })
 
 onMounted(async () => {

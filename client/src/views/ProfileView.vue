@@ -12,14 +12,10 @@
         <p class="text-xl font-bold">{{ stats.username }}</p>
       </div>
 
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid grid-cols-3 gap-3">
         <div class="bg-[#1e1e24] rounded-2xl p-4 text-center">
           <p class="text-2xl font-bold text-violet-400">{{ stats.level }}</p>
           <p class="text-xs text-white/40 mt-1">Level</p>
-        </div>
-        <div class="bg-[#1e1e24] rounded-2xl p-4 text-center">
-          <p class="text-2xl font-bold">{{ stats.xp }}</p>
-          <p class="text-xs text-white/40 mt-1">Total XP</p>
         </div>
         <div class="bg-[#1e1e24] rounded-2xl p-4 text-center">
           <p class="text-2xl font-bold">{{ stats.workouts_completed }}</p>
@@ -27,20 +23,25 @@
         </div>
         <div class="bg-[#1e1e24] rounded-2xl p-4 text-center">
           <p class="text-2xl font-bold">{{ stats.workouts_total }}</p>
-          <p class="text-xs text-white/40 mt-1">Total workouts</p>
+          <p class="text-xs text-white/40 mt-1">Workouts</p>
         </div>
       </div>
 
-      <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-1">
-        <div class="flex justify-between text-sm">
-          <span class="text-white/50">Next level</span>
-          <span class="text-white">{{ stats.next_level_xp }} XP</span>
+      <!-- XP card — full width with progress bar -->
+      <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-2">
+        <div class="flex justify-between items-baseline">
+          <span class="text-white/50 text-sm">Total XP</span>
+          <span class="text-white/40 text-xs">Next level: {{ stats.next_level_xp }} XP</span>
+        </div>
+        <div class="flex items-baseline gap-1.5">
+          <span class="text-2xl font-bold">{{ stats.total_xp }}</span>
+          <span class="text-sm text-white/40">XP</span>
         </div>
         <div class="h-2 bg-white/10 rounded-full overflow-hidden">
           <div class="h-full bg-violet-500 rounded-full transition-all"
                :style="{ width: xpPercent + '%' }"></div>
         </div>
-        <p class="text-xs text-white/30 text-right">{{ stats.xp }} / {{ stats.next_level_xp }} XP</p>
+        <p class="text-xs text-white/30 text-right">{{ stats.total_xp }} / {{ stats.next_level_xp }} XP · {{ xpToNext }} to go</p>
       </div>
     </template>
 
@@ -61,8 +62,9 @@ import { api } from '../api/client'
 
 interface Stats {
   username:            string
-  xp:                  number
+  total_xp:            number
   level:               number
+  current_level_xp:    number
   next_level_xp:       number
   workouts_total:      number
   workouts_completed:  number
@@ -77,7 +79,16 @@ const error   = ref('')
 
 const xpPercent = computed(() => {
   if (!stats.value) return 0
-  return Math.min((stats.value.xp / stats.value.next_level_xp) * 100, 100)
+  const { total_xp, current_level_xp, next_level_xp } = stats.value
+  if (next_level_xp === 0) return 100 // max level
+  const range = next_level_xp - current_level_xp
+  if (range === 0) return 0
+  return Math.min(((total_xp - current_level_xp) / range) * 100, 100)
+})
+
+const xpToNext = computed(() => {
+  if (!stats.value || stats.value.next_level_xp === 0) return 0
+  return Math.max(stats.value.next_level_xp - stats.value.total_xp, 0)
 })
 
 onMounted(async () => {

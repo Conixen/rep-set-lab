@@ -11,6 +11,18 @@
         <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Build your workout</p>
 
         <div class="space-y-2">
+          <p class="text-sm text-white/60">Training environment</p>
+          <div class="flex gap-2">
+            <button
+              v-for="env in environments" :key="env.key"
+              @click="environment = env.key"
+              :class="environment === env.key ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+              class="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
+            >{{ env.label }}</button>
+          </div>
+        </div>
+
+        <div class="space-y-2">
           <p class="text-sm text-white/60">Muscle groups <span class="text-white/30">(select one or more)</span></p>
           <div class="grid grid-cols-3 gap-2">
             <button
@@ -276,6 +288,11 @@ interface ProviderResult {
   latency_ms: number
 }
 
+const environments = [
+  { key: 'gym',     label: '🏋️ Gym' },
+  { key: 'home',    label: '🏠 Home' },
+  { key: 'outdoor', label: '🌳 Outdoor' },
+]
 const muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core']
 const durations    = [30, 45, 60, 90]
 const levels       = ['Beginner', 'Intermediate', 'Advanced']
@@ -295,6 +312,7 @@ const experience           = ref('Beginner')
 const goal                 = ref('Muscle gain')
 const injuries             = ref('')
 const prompt               = ref('')
+const environment          = ref('gym')
 
 const effectiveDuration = computed(() => {
   const custom = parseInt(customDuration.value)
@@ -355,6 +373,7 @@ async function compare() {
       goals:            `${goal.value} · ${experience.value}`,
       injuries:         injuries.value,
       prompt:           prompt.value,
+      environment:      environment.value,
     })
     results.value = data.results.sort((a, b) => a.latency_ms - b.latency_ms)
   } catch (e: unknown) {

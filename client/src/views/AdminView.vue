@@ -143,6 +143,48 @@
       </div>
       <p v-if="usersError" class="text-red-400 text-xs">{{ usersError }}</p>
     </template>
+
+    <!-- ── Exercises ── -->
+    <template v-if="activeTab === 'exercises'">
+      <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-4">
+        <div class="flex items-center justify-between">
+          <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Exercise images</p>
+          <button
+            @click="runSync"
+            :disabled="syncLoading"
+            class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-violet-500 hover:bg-violet-400 text-white font-medium transition-colors disabled:opacity-50"
+          >
+            <span v-if="syncLoading">Syncing…</span>
+            <span v-else>🔄 Sync now</span>
+          </button>
+        </div>
+
+        <p class="text-xs text-white/40 leading-relaxed">
+          Fetches animated GIF URLs from ExerciseDB for any exercise missing one.
+          Safe to run multiple times — skips exercises that already have a GIF.
+        </p>
+
+        <!-- Result -->
+        <div v-if="syncResult" class="grid grid-cols-3 gap-3 pt-1">
+          <div class="bg-white/5 rounded-xl p-3 text-center">
+            <p class="text-xl font-bold">{{ syncResult.total }}</p>
+            <p class="text-xs text-white/40 mt-0.5">Total</p>
+          </div>
+          <div class="bg-white/5 rounded-xl p-3 text-center">
+            <p class="text-xl font-bold text-green-400">{{ syncResult.gifs }}</p>
+            <p class="text-xs text-white/40 mt-0.5">GIFs updated</p>
+          </div>
+          <div class="bg-white/5 rounded-xl p-3 text-center">
+            <p class="text-xl font-bold" :class="syncResult.errors > 0 ? 'text-red-400' : 'text-white/30'">
+              {{ syncResult.errors }}
+            </p>
+            <p class="text-xs text-white/40 mt-0.5">Errors</p>
+          </div>
+        </div>
+
+        <p v-if="syncError" class="text-red-400 text-xs">{{ syncError }}</p>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -151,10 +193,11 @@ import { ref, onMounted } from 'vue'
 import { api } from '../api/client'
 
 const tabList = [
-  { key: 'ai',    label: 'AI Requests' },
-  { key: 'users', label: 'Users' },
+  { key: 'ai',        label: 'AI Requests' },
+  { key: 'users',     label: 'Users' },
+  { key: 'exercises', label: 'Exercises' },
 ]
-const activeTab = ref<'ai' | 'users'>('ai')
+const activeTab = ref<'ai' | 'users' | 'exercises'>('ai')
 
 // ── AI Requests ──
 interface AIRequest {
@@ -280,4 +323,28 @@ onMounted(() => {
   loadAI()
   loadUsers()
 })
+
+// ── Exercises ──
+interface SyncResult {
+  total:  number
+  gifs:   number
+  errors: number
+}
+
+const syncLoading = ref(false)
+const syncResult  = ref<SyncResult | null>(null)
+const syncError   = ref('')
+
+async function runSync() {
+  syncLoading.value = true
+  syncResult.value  = null
+  syncError.value   = ''
+  try {
+    syncResult.value = await api.post<SyncResult>('/admin/exercises/sync', {})
+  } catch (e: unknown) {
+    syncError.value = e instanceof Error ? e.message : 'Sync failed'
+  } finally {
+    syncLoading.value = false
+  }
+}
 </script>

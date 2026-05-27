@@ -15,6 +15,18 @@
         <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Build your workout</p>
 
         <div class="space-y-2">
+          <p class="text-sm text-white/60">Training environment</p>
+          <div class="flex gap-2">
+            <button
+              v-for="env in environments" :key="env.key"
+              @click="environment = env.key"
+              :class="environment === env.key ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+              class="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
+            >{{ env.label }}</button>
+          </div>
+        </div>
+
+        <div class="space-y-2">
           <p class="text-sm text-white/60">Muscle groups <span class="text-white/30">(select one or more)</span></p>
           <div class="grid grid-cols-3 gap-2">
             <button
@@ -233,16 +245,22 @@ interface XPResult {
 }
 
 const providers = [
-  { key: 'claude',  label: 'Claude Sonnet' },
-  { key: 'openai',  label: 'GPT-4o' },
-  { key: 'gemini',  label: 'Gemini 1.5 Pro' },
+  { key: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+  { key: 'gemini-2.5-pro',   label: 'Gemini 2.5 Pro' },
+  { key: 'claude',           label: 'Claude Sonnet (WIP)' },
+  { key: 'openai',           label: 'GPT-4o (WIP)' },
+]
+const environments = [
+  { key: 'gym',     label: '🏋️ Gym' },
+  { key: 'home',    label: '🏠 Home' },
+  { key: 'outdoor', label: '🌳 Outdoor' },
 ]
 const muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core']
 const durations    = [30, 45, 60, 90]
 const levels       = ['Beginner', 'Intermediate', 'Advanced']
 const goals        = ['Muscle gain', 'Fat loss', 'Strength', 'Endurance']
 
-const selectedProvider     = ref('claude')
+const selectedProvider     = ref('gemini-2.5-flash')
 const selectedMuscleGroups = ref<string[]>(['Chest'])
 const duration             = ref(45)
 const customDuration       = ref('')
@@ -250,6 +268,7 @@ const experience           = ref('Beginner')
 const goal                 = ref('Muscle gain')
 const injuries             = ref('')
 const prompt               = ref('')
+const environment          = ref('gym')
 
 const effectiveDuration = computed(() => {
   const custom = parseInt(customDuration.value)
@@ -287,6 +306,7 @@ async function generate() {
       goals:            `${goal.value} · ${experience.value}`,
       injuries:         injuries.value,
       prompt:           prompt.value,
+      environment:      environment.value,
     })
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to generate workout'
