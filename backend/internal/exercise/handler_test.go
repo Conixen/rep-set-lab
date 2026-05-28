@@ -1,6 +1,9 @@
 package exercise_test
 
 import (
+	"bytes"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,6 +13,34 @@ import (
 )
 
 func init() { gin.SetMode(gin.TestMode) }
+
+// mockTransport intercepts outbound HTTP calls so tests never hit a real network.
+type mockTransport struct {
+	callCount  int
+	statusCode int
+	body       []byte
+	err        error
+}
+
+func (m *mockTransport) RoundTrip(*http.Request) (*http.Response, error) {
+	m.callCount++
+	if m.err != nil {
+		return nil, m.err
+	}
+	return &http.Response{
+		StatusCode: m.statusCode,
+		Header:     http.Header{"Content-Type": []string{"image/gif"}},
+		Body:       io.NopCloser(bytes.NewReader(m.body)),
+	}, nil
+}
+
+func newProxyRouterWithClient(exerciseDBKey string, transport http.RoundTripper) *gin.Engine {
+	client := &http.Client{Transport: transport}
+	h := exercise.NewHandlerWithClient(nil, exerciseDBKey, client)
+	r := gin.New()
+	r.GET("/api/v1/exercises/image/:exerciseid", h.ProxyImage)
+	return r
+}
 
 // newProxyRouter wires a minimal Gin router with ProxyImage using the same
 // path used in production. Passing an empty exerciseDBKey simulates the
@@ -78,5 +109,59 @@ func TestProxyImage_ValidIDFormat_PassesValidation(t *testing.T) {
 				t.Errorf("id=%q: want 503 (valid ID, no key), got %d", id, w.Code)
 			}
 		})
+	}
+}
+
+// TestProxyImage_CacheHit_NoSecondUpstreamCall verifies that the second request
+// for the same exercise ID is served from the in-memory cache without a second
+// upstream call.
+func TestProxyImage_CacheHit_NoSecondUpstreamCall(t *testing.T) {
+	transport := &mockTransport{
+		statusCode: http.StatusOK,
+		body:       []byte("GIF89a"), // minimal GIF-like payload
+	}
+	r := newProxyRouterWithClient("testkey", transport)
+
+	for i, want := range []int{http.StatusOK, http.StatusOK} {
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, httptest.NewRequest(http.MethodGet,
+			"/api/v1/exercises/image/0027", nil))
+		if w.Code != want {
+			t.Errorf("request %d: want %d, got %d", i+1, want, w.Code)
+		}
+	}
+
+	if transport.callCount != 1 {
+		t.Errorf("upstream called %d times; want exactly 1 (cache should serve second request)", transport.callCount)
+	}
+}
+
+// TestProxyImage_Upstream404_Mirrors404 verifies that a non-200 from ExerciseDB
+// is mirrored back to the client unchanged.
+func TestProxyImage_Upstream404_Mirrors404(t *testing.T) {
+	transport := &mockTransport{statusCode: http.StatusNotFound}
+	r := newProxyRouterWithClient("testkey", transport)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet,
+		"/api/v1/exercises/image/9999", nil))
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("want 404 mirrored from upstream, got %d", w.Code)
+	}
+}
+
+// TestProxyImage_UpstreamError_Returns502 verifies that a transport-level error
+// (connection refused, DNS failure, etc.) returns 502 Bad Gateway.
+func TestProxyImage_UpstreamError_Returns502(t *testing.T) {
+	transport := &mockTransport{err: errors.New("connection refused")}
+	r := newProxyRouterWithClient("testkey", transport)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet,
+		"/api/v1/exercises/image/0001", nil))
+
+	if w.Code != http.StatusBadGateway {
+		t.Errorf("want 502 on upstream error, got %d", w.Code)
 	}
 }

@@ -47,7 +47,6 @@ func NewExerciseDBClient(apiKey string) *ExerciseDBClient {
 // We store the id and return a backend proxy URL so the API key stays server-side.
 type exerciseDBEntry struct {
 	ID string `json:"id"`
-	// gifUrl string `json:"gifUrl"` — removed in ExerciseDB API v2
 }
 
 // FetchGIF searches ExerciseDB for the exercise by name and returns a backend
