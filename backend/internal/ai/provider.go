@@ -6,12 +6,13 @@ import (
 )
 
 type WorkoutRequest struct {
-	UserPrompt      string
-	MuscleGroup     string
-	DurationMinutes int
-	Injuries        string
-	Goals           string
-	Environment     string
+	UserPrompt         string
+	MuscleGroup        string
+	DurationMinutes    int
+	Injuries           string
+	Goals              string
+	Environment        string
+	AvailableExercises []string // exercise names from our library; AI prefers these for GIF previews
 }
 
 type Exercise struct {
@@ -85,6 +86,12 @@ func buildUserPrompt(req WorkoutRequest) string {
 	}
 	if req.UserPrompt != "" {
 		prompt += fmt.Sprintf("Additional notes: %s\n", req.UserPrompt)
+	}
+	if len(req.AvailableExercises) > 0 {
+		prompt += "\nExercises in our library (prefer these where they fit — users get image previews for library exercises):\n"
+		for _, name := range req.AvailableExercises {
+			prompt += "- " + name + "\n"
+		}
 	}
 	return prompt
 }

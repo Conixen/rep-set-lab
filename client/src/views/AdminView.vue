@@ -192,7 +192,7 @@
 import { ref, onMounted } from 'vue'
 import { api } from '../api/client'
 
-const tabList = [
+const tabList: { key: 'ai' | 'users' | 'exercises'; label: string }[] = [
   { key: 'ai',        label: 'AI Requests' },
   { key: 'users',     label: 'Users' },
   { key: 'exercises', label: 'Exercises' },

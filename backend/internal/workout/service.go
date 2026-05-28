@@ -43,16 +43,31 @@ type AILogger interface {
 	Log(ctx context.Context, req *database.AIRequest) error
 }
 
+// ExerciseLister is satisfied by *database.ExerciseStore. When wired, the service
+// injects available exercise names into the AI prompt so the AI prefers exercises
+// that have GIF previews in the library.
+type ExerciseLister interface {
+	List(ctx context.Context, muscleGroup string) ([]*database.Exercise, error)
+}
+
 type Service struct {
 	workouts   Storage
 	users      UserStorage
 	providers  map[string]ai.Provider
 	hub        *ws.Hub
 	aiRequests AILogger
+	exercises  ExerciseLister // nil = skip library injection
 }
 
 func NewService(workouts Storage, users UserStorage, providers map[string]ai.Provider, hub *ws.Hub, aiRequests AILogger) *Service {
 	return &Service{workouts: workouts, users: users, providers: providers, hub: hub, aiRequests: aiRequests}
+}
+
+// WithExerciseLister wires the exercise library into the service so available
+// exercise names are injected into the AI prompt at generation time.
+func (s *Service) WithExerciseLister(el ExerciseLister) *Service {
+	s.exercises = el
+	return s
 }
 
 type GenerateRequest struct {
@@ -84,6 +99,17 @@ func (s *Service) Generate(ctx context.Context, userID int64, req GenerateReques
 		Injuries:        req.Injuries,
 		Goals:           req.Goals,
 		Environment:     req.Environment,
+	}
+
+	if s.exercises != nil {
+		if exList, err := s.exercises.List(ctx, ""); err == nil {
+			names := make([]string, len(exList))
+			for i, ex := range exList {
+				names[i] = ex.Name
+			}
+			aiReq.AvailableExercises = names
+		}
+		// non-fatal: if the library fetch fails, generate without the hint
 	}
 
 	start := time.Now()

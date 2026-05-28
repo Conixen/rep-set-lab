@@ -134,7 +134,11 @@
           <p class="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">Warm Up</p>
           <div class="space-y-2">
             <div v-for="ex in result.response.warm_up" :key="ex.name" class="bg-white/5 rounded-xl p-3">
-              <p class="font-medium text-sm">{{ ex.name }}</p>
+              <button v-if="exerciseGifMap[ex.name]" @click="openPopup(ex.name)"
+                class="font-medium text-sm text-violet-400 text-left w-full">
+                {{ ex.name }} <span class="text-violet-500/60 text-xs">▶</span>
+              </button>
+              <p v-else class="font-medium text-sm">{{ ex.name }}</p>
               <p class="text-xs text-white/40 mt-0.5">
                 <span v-if="ex.sets && ex.reps">{{ ex.sets }} sets × {{ ex.reps }} reps</span>
                 <span v-else-if="ex.duration_seconds">{{ ex.duration_seconds }}s</span>
@@ -149,7 +153,11 @@
           <p class="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">Main</p>
           <div class="space-y-2">
             <div v-for="ex in result.response.main" :key="ex.name" class="bg-white/5 rounded-xl p-3">
-              <p class="font-medium text-sm">{{ ex.name }}</p>
+              <button v-if="exerciseGifMap[ex.name]" @click="openPopup(ex.name)"
+                class="font-medium text-sm text-violet-400 text-left w-full">
+                {{ ex.name }} <span class="text-violet-500/60 text-xs">▶</span>
+              </button>
+              <p v-else class="font-medium text-sm">{{ ex.name }}</p>
               <p class="text-xs text-white/40 mt-0.5">
                 <span v-if="ex.sets && ex.reps">{{ ex.sets }} sets × {{ ex.reps }} reps</span>
                 <span v-else-if="ex.duration_seconds">{{ ex.duration_seconds }}s</span>
@@ -164,7 +172,11 @@
           <p class="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">Cool Down</p>
           <div class="space-y-2">
             <div v-for="ex in result.response.cool_down" :key="ex.name" class="bg-white/5 rounded-xl p-3">
-              <p class="font-medium text-sm">{{ ex.name }}</p>
+              <button v-if="exerciseGifMap[ex.name]" @click="openPopup(ex.name)"
+                class="font-medium text-sm text-violet-400 text-left w-full">
+                {{ ex.name }} <span class="text-violet-500/60 text-xs">▶</span>
+              </button>
+              <p v-else class="font-medium text-sm">{{ ex.name }}</p>
               <p class="text-xs text-white/40 mt-0.5">
                 <span v-if="ex.duration_seconds">{{ ex.duration_seconds }}s</span>
               </p>
@@ -207,11 +219,35 @@
       </div>
     </template>
   </div>
+
+  <!-- Exercise GIF popup — tap exercise name to open, tap backdrop or ✕ to close -->
+  <Teleport to="body">
+    <div
+      v-if="activePopup"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/75"
+      @click.self="closePopup"
+    >
+      <div class="bg-[#1e1e24] rounded-2xl p-4 mx-4 w-72 relative">
+        <button
+          @click="closePopup"
+          class="absolute top-3 right-3 text-white/40 hover:text-white text-xl leading-none"
+          aria-label="Close"
+        >✕</button>
+        <p class="font-semibold text-sm pr-7 mb-3">{{ activePopup }}</p>
+        <img
+          :src="exerciseGifMap[activePopup!]"
+          :alt="activePopup ?? ''"
+          class="w-full rounded-xl"
+        />
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { api } from '../api/client'
+import { findLibraryMatch, type LibraryExercise } from '../utils/exerciseMatch'
 
 interface Exercise {
   name: string
@@ -255,7 +291,7 @@ const environments = [
   { key: 'home',    label: '🏠 Home' },
   { key: 'outdoor', label: '🌳 Outdoor' },
 ]
-const muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core']
+const muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Lower Legs', 'Lower Arms']
 const durations    = [30, 45, 60, 90]
 const levels       = ['Beginner', 'Intermediate', 'Advanced']
 const goals        = ['Muscle gain', 'Fat loss', 'Strength', 'Endurance']
@@ -294,6 +330,40 @@ const completing = ref(false)
 const error      = ref('')
 const result     = ref<GenerateResult | null>(null)
 const xpResult   = ref<XPResult | null>(null)
+
+// Exercise library — loaded once on mount, used for GIF popup matching
+const libraryExercises = ref<LibraryExercise[]>([])
+onMounted(async () => {
+  try {
+    libraryExercises.value = await api.get<LibraryExercise[]>('/exercises')
+  } catch {
+    // non-fatal: GIF popups simply won't appear if library can't be fetched
+  }
+})
+
+// Map of AI exercise name → gif_url, built once when result arrives
+const exerciseGifMap = computed<Record<string, string>>(() => {
+  if (!result.value || libraryExercises.value.length === 0) return {}
+
+  const allNames = [
+    ...result.value.response.warm_up.map(e => e.name),
+    ...result.value.response.main.map(e => e.name),
+    ...result.value.response.cool_down.map(e => e.name),
+  ]
+
+  const map: Record<string, string> = {}
+  for (const name of allNames) {
+    if (map[name] !== undefined) continue
+    const match = findLibraryMatch(name, selectedMuscleGroups.value, libraryExercises.value)
+    if (match?.gif_url) map[name] = match.gif_url
+  }
+  return map
+})
+
+// Popup state — one exercise open at a time
+const activePopup = ref<string | null>(null)
+function openPopup(name: string) { activePopup.value = name }
+function closePopup() { activePopup.value = null }
 
 async function generate() {
   error.value = ''

@@ -84,8 +84,9 @@ func main() {
 		}
 	}
 
-	hub             := ws.NewHub(logger, cfg.AllowedOrigins)
-	svc             := workout.NewService(workoutStore, userStore, providers, hub, aiRequestStore)
+	hub := ws.NewHub(logger, cfg.AllowedOrigins)
+	svc := workout.NewService(workoutStore, userStore, providers, hub, aiRequestStore).
+		WithExerciseLister(exerciseStore)
 	authHandler     := auth.NewHandler(userStore, cfg.JWTSecret)
 	workoutHandler  := workout.NewHandler(svc, workoutStore)
 	userHandler     := user.NewHandler(userStore, workoutStore)
