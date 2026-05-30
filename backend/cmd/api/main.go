@@ -51,7 +51,8 @@ func main() {
 	}
 	logger.Info("migrations applied")
 
-	userStore      := database.NewUserStore(db)
+	userStore := database.NewUserStore(db)
+	auth.BootstrapAdmin(context.Background(), userStore, cfg.BootstrapAdminEmail, cfg.BootstrapAdminPass, logger)
 	workoutStore   := database.NewWorkoutStore(db)
 	exerciseStore  := database.NewExerciseStore(db)
 	aiRequestStore := database.NewAIRequestStore(db)
@@ -118,13 +119,19 @@ func main() {
 
 	protected := v1.Group("", auth.Middleware(cfg.JWTSecret))
 	{
-		protected.GET("/users/me/stats",           userHandler.Stats)
-		protected.POST("/workouts/generate",       workoutHandler.Generate)
-		protected.GET("/workouts",                 workoutHandler.List)
-		protected.GET("/workouts/:id",             workoutHandler.Get)
-		protected.POST("/workouts/:id/complete",   workoutHandler.Complete)
-		protected.GET("/exercises",                exerciseHandler.List)
-		protected.POST("/ai/compare",              compareHandler.Compare)
+		// Free routes — JWT required but no status check (no AI token spend).
+		protected.GET("/exercises", exerciseHandler.List)
+
+		// Active-only routes — pending users are blocked with 403.
+		active := protected.Group("", auth.ActiveMiddleware(userStore))
+		{
+			active.GET("/users/me/stats",          userHandler.Stats)
+			active.POST("/workouts/generate",      workoutHandler.Generate)
+			active.GET("/workouts",                workoutHandler.List)
+			active.GET("/workouts/:id",            workoutHandler.Get)
+			active.POST("/workouts/:id/complete",  workoutHandler.Complete)
+			active.POST("/ai/compare",             compareHandler.Compare)
+		}
 	}
 
 	adminGroup := v1.Group("/admin", auth.Middleware(cfg.JWTSecret), auth.AdminMiddleware(userStore))
@@ -132,6 +139,7 @@ func main() {
 		adminGroup.GET("/users",              adminHandler.ListUsers)
 		adminGroup.GET("/users/:id",          adminHandler.GetUser)
 		adminGroup.PUT("/users/:id",          adminHandler.UpdateUser)
+		adminGroup.PUT("/users/:id/approve",  adminHandler.ApproveUser)
 		adminGroup.DELETE("/users/:id",       adminHandler.DeleteUser)
 		adminGroup.GET("/workouts",            adminHandler.ListWorkouts)
 		adminGroup.GET("/workouts/:id",        adminHandler.GetWorkout)

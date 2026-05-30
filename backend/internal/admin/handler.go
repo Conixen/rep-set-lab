@@ -22,6 +22,7 @@ type UserStore interface {
 	GetByID(ctx context.Context, id int64) (*database.User, error)
 	Delete(ctx context.Context, id int64) error
 	UpdateRole(ctx context.Context, id int64, role string) error
+	ApproveUser(ctx context.Context, id int64) error
 	IncrementTokenVersion(ctx context.Context, id int64) error
 }
 
@@ -123,6 +124,30 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 			return
 		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"user": user})
+}
+
+func (h *Handler) ApproveUser(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	if err := h.users.ApproveUser(c.Request.Context(), id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to approve user"})
+		return
+	}
+
+	user, err := h.users.GetByID(c.Request.Context(), id)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
 		return
 	}

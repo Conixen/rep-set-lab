@@ -56,7 +56,7 @@
             <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">
               Request log <span class="text-white/20 normal-case font-normal">({{ aiData.total }} total)</span>
             </p>
-            <button @click="downloadCSV" class="text-xs text-violet-400 hover:text-violet-300 transition-colors">
+            <button @click="handleDownloadCSV" class="text-xs text-violet-400 hover:text-violet-300 transition-colors">
               Export CSV ↓
             </button>
           </div>
@@ -87,7 +87,7 @@
                       {{ r.valid_json ? 'Yes' : 'No' }}
                     </span>
                   </td>
-                  <td class="py-2 text-white/40">{{ formatDate(r.created_at) }}</td>
+                  <td class="py-2 text-white/40">{{ formatDateTime(r.created_at) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -132,7 +132,18 @@
                 :class="u.role === 'admin' ? 'bg-violet-500/20 text-violet-400' : 'bg-white/5 text-white/30'"
                 class="text-xs px-2 py-0.5 rounded-full"
               >{{ u.role }}</span>
+              <span
+                v-if="u.status === 'pending'"
+                class="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full"
+              >pending</span>
               <button
+                v-if="u.status === 'pending'"
+                @click="approveUser(u)"
+                :disabled="!!userActionId"
+                class="text-xs px-2 py-1 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 transition-colors disabled:opacity-40"
+              >Approve</button>
+              <button
+                v-else
                 @click="toggleRole(u)"
                 :disabled="!!userActionId"
                 class="text-xs px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors disabled:opacity-40"
@@ -165,20 +176,36 @@
         </p>
 
         <!-- Result -->
-        <div v-if="syncResult" class="grid grid-cols-3 gap-3 pt-1">
-          <div class="bg-white/5 rounded-xl p-3 text-center">
-            <p class="text-xl font-bold">{{ syncResult.total }}</p>
-            <p class="text-xs text-white/40 mt-0.5">Total</p>
+        <div v-if="syncResult" class="space-y-3 pt-1">
+          <div class="grid grid-cols-4 gap-2">
+            <div class="bg-white/5 rounded-xl p-3 text-center">
+              <p class="text-xl font-bold">{{ syncResult.total }}</p>
+              <p class="text-xs text-white/40 mt-0.5">Total</p>
+            </div>
+            <div class="bg-white/5 rounded-xl p-3 text-center">
+              <p class="text-xl font-bold text-white/30">{{ syncResult.skipped }}</p>
+              <p class="text-xs text-white/40 mt-0.5">Skipped</p>
+            </div>
+            <div class="bg-white/5 rounded-xl p-3 text-center">
+              <p class="text-xl font-bold text-green-400">{{ syncResult.gifs }}</p>
+              <p class="text-xs text-white/40 mt-0.5">Updated</p>
+            </div>
+            <div class="bg-white/5 rounded-xl p-3 text-center">
+              <p class="text-xl font-bold" :class="errorCount > 0 ? 'text-red-400' : 'text-white/30'">
+                {{ errorCount }}
+              </p>
+              <p class="text-xs text-white/40 mt-0.5">Errors</p>
+            </div>
           </div>
-          <div class="bg-white/5 rounded-xl p-3 text-center">
-            <p class="text-xl font-bold text-green-400">{{ syncResult.gifs }}</p>
-            <p class="text-xs text-white/40 mt-0.5">GIFs updated</p>
+
+          <div v-if="syncResult.no_match.length" class="bg-white/5 rounded-xl p-3 space-y-1">
+            <p class="text-xs font-semibold text-yellow-400/80">No ExerciseDB match — add to exerciseIDOverrides:</p>
+            <p v-for="name in syncResult.no_match" :key="name" class="text-xs text-white/50 font-mono">{{ name }}</p>
           </div>
-          <div class="bg-white/5 rounded-xl p-3 text-center">
-            <p class="text-xl font-bold" :class="syncResult.errors > 0 ? 'text-red-400' : 'text-white/30'">
-              {{ syncResult.errors }}
-            </p>
-            <p class="text-xs text-white/40 mt-0.5">Errors</p>
+
+          <div v-if="syncResult.failed.length" class="bg-white/5 rounded-xl p-3 space-y-1">
+            <p class="text-xs font-semibold text-red-400/80">API / DB errors:</p>
+            <p v-for="name in syncResult.failed" :key="name" class="text-xs text-white/50 font-mono">{{ name }}</p>
           </div>
         </div>
 
@@ -189,8 +216,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { api } from '../api/client'
+import { toMessage } from '../utils/error'
+import { formatDateTime } from '../utils/date'
+import { downloadCSV } from '../utils/csv'
 
 const tabList: { key: 'ai' | 'users' | 'exercises'; label: string }[] = [
   { key: 'ai',        label: 'AI Requests' },
@@ -240,51 +270,34 @@ function validRate(s: ProviderStat) {
   return Math.round((s.valid_calls / s.total_calls) * 100)
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('sv-SE', {
-    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
-}
-
 async function loadAI() {
   aiLoading.value = true
   aiError.value = ''
   try {
     aiData.value = await api.get<AIData>(`/admin/ai-requests?page=${aiPage.value}`)
   } catch (e: unknown) {
-    aiError.value = e instanceof Error ? e.message : 'Failed to load AI requests'
+    aiError.value = toMessage(e, 'Failed to load AI requests')
   } finally {
     aiLoading.value = false
   }
 }
 
-function csvField(v: unknown): string {
-  const s = String(v)
-  return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
-}
-
-function downloadCSV() {
+function handleDownloadCSV() {
   if (!aiData.value?.requests.length) return
   const headers = ['id','username','provider','input_tokens','output_tokens','cost_usd','latency_ms','valid_json','created_at']
   const rows = aiData.value.requests.map(r =>
-    [r.id, r.username, r.provider, r.input_tokens, r.output_tokens, r.cost_usd, r.latency_ms, r.valid_json, r.created_at].map(csvField).join(',')
+    [r.id, r.username, r.provider, r.input_tokens, r.output_tokens, r.cost_usd, r.latency_ms, r.valid_json, r.created_at]
   )
-  const csv = [headers.join(','), ...rows].join('\n')
-  const blob = new Blob([csv], { type: 'text/csv' })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href = url
-  a.download = `ai-requests-page-${aiPage.value}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
+  downloadCSV(headers, rows, `ai-requests-page-${aiPage.value}.csv`)
 }
 
 // ── Users ──
 interface User {
-  id: number
+  id:     number
   username: string
-  email: string
-  role: string
+  email:  string
+  role:   string
+  status: string
 }
 
 const users        = ref<User[]>([])
@@ -299,9 +312,22 @@ async function loadUsers() {
     const data = await api.get<{ users: User[] }>('/admin/users')
     users.value = data.users
   } catch (e: unknown) {
-    usersError.value = e instanceof Error ? e.message : 'Failed to load users'
+    usersError.value = toMessage(e, 'Failed to load users')
   } finally {
     usersLoading.value = false
+  }
+}
+
+async function approveUser(u: User) {
+  userActionId.value = u.id
+  try {
+    const data = await api.put<{ user: User }>(`/admin/users/${u.id}/approve`, {})
+    const idx = users.value.findIndex(x => x.id === u.id)
+    if (idx !== -1) users.value[idx] = data.user
+  } catch (e: unknown) {
+    usersError.value = toMessage(e, 'Failed to approve user')
+  } finally {
+    userActionId.value = null
   }
 }
 
@@ -313,7 +339,7 @@ async function toggleRole(u: User) {
     const idx = users.value.findIndex(x => x.id === u.id)
     if (idx !== -1) users.value[idx] = data.user
   } catch (e: unknown) {
-    usersError.value = e instanceof Error ? e.message : 'Failed to update user'
+    usersError.value = toMessage(e, 'Failed to update user')
   } finally {
     userActionId.value = null
   }
@@ -326,14 +352,19 @@ onMounted(() => {
 
 // ── Exercises ──
 interface SyncResult {
-  total:  number
-  gifs:   number
-  errors: number
+  total:    number
+  skipped:  number
+  gifs:     number
+  no_match: string[]
+  failed:   string[]
 }
 
 const syncLoading = ref(false)
 const syncResult  = ref<SyncResult | null>(null)
 const syncError   = ref('')
+const errorCount  = computed(() =>
+  syncResult.value ? syncResult.value.no_match.length + syncResult.value.failed.length : 0
+)
 
 async function runSync() {
   syncLoading.value = true
@@ -342,7 +373,7 @@ async function runSync() {
   try {
     syncResult.value = await api.post<SyncResult>('/admin/exercises/sync', {})
   } catch (e: unknown) {
-    syncError.value = e instanceof Error ? e.message : 'Sync failed'
+    syncError.value = toMessage(e, 'Sync failed')
   } finally {
     syncLoading.value = false
   }

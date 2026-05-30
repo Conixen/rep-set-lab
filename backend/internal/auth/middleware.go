@@ -30,6 +30,35 @@ type UserVersionStore interface {
 	GetTokenVersion(ctx context.Context, id int64) (int, error)
 }
 
+// UserStatusStore is satisfied by database.UserStore; used by ActiveMiddleware.
+type UserStatusStore interface {
+	GetStatus(ctx context.Context, id int64) (string, error)
+}
+
+const statusActive = "active"
+
+// ActiveMiddleware must be chained after Middleware. It rejects users whose
+// account status is not 'active' with 403 so they cannot consume AI tokens.
+func ActiveMiddleware(store UserStatusStore) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		claims := GetClaims(c)
+		if claims == nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authorization required"})
+			return
+		}
+		status, err := store.GetStatus(c.Request.Context(), claims.UserID)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to verify account status"})
+			return
+		}
+		if status != statusActive {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "account pending approval"})
+			return
+		}
+		c.Next()
+	}
+}
+
 func Middleware(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := c.GetHeader("Authorization")

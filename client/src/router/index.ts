@@ -8,11 +8,13 @@ import CompareView from '../views/CompareView.vue'
 import HistoryView from '../views/HistoryView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import AdminView   from '../views/AdminView.vue'
+import PendingView from '../views/PendingView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login',    component: LoginView,   meta: { public: true } },
+    { path: '/pending',  component: PendingView, meta: { public: true } },
     { path: '/',         component: HomeView },
     { path: '/library',  component: LibraryView },
     { path: '/ai',       component: AiView },

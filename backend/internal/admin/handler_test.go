@@ -72,6 +72,16 @@ func (s *stubUserStore) UpdateRole(_ context.Context, id int64, role string) err
 	return sql.ErrNoRows
 }
 
+func (s *stubUserStore) ApproveUser(_ context.Context, id int64) error {
+	for _, u := range s.users {
+		if u.ID == id {
+			u.Status = "active"
+			return nil
+		}
+	}
+	return sql.ErrNoRows
+}
+
 func (s *stubUserStore) IncrementTokenVersion(_ context.Context, id int64) error {
 	s.versionIncrement = append(s.versionIncrement, id)
 	return nil

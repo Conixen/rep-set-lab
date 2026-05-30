@@ -16,6 +16,7 @@ type User struct {
 	XP           int64     `db:"xp"               json:"xp"`
 	Level        int       `db:"level"            json:"level"`
 	Role         string    `db:"role"             json:"role"`
+	Status       string    `db:"status"           json:"status"`
 	TokenVersion int       `db:"token_version"    json:"-"`
 	CreatedAt    time.Time `db:"created_at"       json:"created_at"`
 	UpdatedAt    time.Time `db:"updated_at"       json:"updated_at"`
@@ -88,6 +89,39 @@ func (s *UserStore) Delete(ctx context.Context, id int64) error {
 		return sql.ErrNoRows
 	}
 	return nil
+}
+
+func (s *UserStore) GetStatus(ctx context.Context, id int64) (string, error) {
+	var status string
+	err := s.db.QueryRowxContext(ctx, `SELECT status FROM users WHERE id = $1`, id).Scan(&status)
+	return status, err
+}
+
+func (s *UserStore) ApproveUser(ctx context.Context, id int64) error {
+	result, err := s.db.ExecContext(ctx, `
+		UPDATE users SET status = 'active', updated_at = NOW() WHERE id = $1
+	`, id)
+	if err != nil {
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+// ActivateAdmin sets status=active and role=admin for the given email.
+// Used by the bootstrap admin flow on startup. Safe to call when the user
+// is already active/admin — it is a no-op in that case.
+func (s *UserStore) ActivateAdmin(ctx context.Context, email string) error {
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE users SET status = 'active', role = 'admin', updated_at = NOW() WHERE email = $1
+	`, email)
+	return err
 }
 
 func (s *UserStore) UpdateRole(ctx context.Context, id int64, role string) error {
