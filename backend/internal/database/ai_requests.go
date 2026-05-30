@@ -35,12 +35,16 @@ type AIRequestRow struct {
 }
 
 type AIProviderStat struct {
-	Provider     string  `db:"provider"      json:"provider"`
-	TotalCalls   int     `db:"total_calls"   json:"total_calls"`
-	ValidCalls   int     `db:"valid_calls"   json:"valid_calls"`
-	AvgLatencyMs int64   `db:"avg_latency_ms" json:"avg_latency_ms"`
-	AvgCostUSD   float64 `db:"avg_cost_usd"  json:"avg_cost_usd"`
-	TotalCostUSD float64 `db:"total_cost_usd" json:"total_cost_usd"`
+	Provider          string  `db:"provider"           json:"provider"`
+	TotalCalls        int     `db:"total_calls"        json:"total_calls"`
+	ValidCalls        int     `db:"valid_calls"        json:"valid_calls"`
+	AvgLatencyMs      int64   `db:"avg_latency_ms"     json:"avg_latency_ms"`
+	AvgCostUSD        float64 `db:"avg_cost_usd"       json:"avg_cost_usd"`
+	TotalCostUSD      float64 `db:"total_cost_usd"     json:"total_cost_usd"`
+	AvgInputTokens    int64   `db:"avg_input_tokens"   json:"avg_input_tokens"`
+	AvgOutputTokens   int64   `db:"avg_output_tokens"  json:"avg_output_tokens"`
+	TotalInputTokens  int64   `db:"total_input_tokens" json:"total_input_tokens"`
+	TotalOutputTokens int64   `db:"total_output_tokens" json:"total_output_tokens"`
 }
 
 type AIRequestStore struct {
@@ -81,11 +85,15 @@ func (s *AIRequestStore) ProviderStats(ctx context.Context) ([]*AIProviderStat, 
 	err := s.db.SelectContext(ctx, &stats, `
 		SELECT
 			provider,
-			COUNT(*)                              AS total_calls,
-			COUNT(*) FILTER (WHERE valid_json)    AS valid_calls,
-			COALESCE(AVG(latency_ms), 0)::BIGINT  AS avg_latency_ms,
-			COALESCE(AVG(cost_usd), 0)            AS avg_cost_usd,
-			COALESCE(SUM(cost_usd), 0)            AS total_cost_usd
+			COUNT(*)                                    AS total_calls,
+			COUNT(*) FILTER (WHERE valid_json)          AS valid_calls,
+			COALESCE(AVG(latency_ms), 0)::BIGINT        AS avg_latency_ms,
+			COALESCE(AVG(cost_usd), 0)                  AS avg_cost_usd,
+			COALESCE(SUM(cost_usd), 0)                  AS total_cost_usd,
+			COALESCE(AVG(input_tokens), 0)::BIGINT      AS avg_input_tokens,
+			COALESCE(AVG(output_tokens), 0)::BIGINT     AS avg_output_tokens,
+			COALESCE(SUM(input_tokens), 0)::BIGINT      AS total_input_tokens,
+			COALESCE(SUM(output_tokens), 0)::BIGINT     AS total_output_tokens
 		FROM ai_requests
 		GROUP BY provider
 		ORDER BY total_calls DESC

@@ -33,7 +33,7 @@ func (s *UserStore) Create(ctx context.Context, email, username, passwordHash st
 	err := s.db.QueryRowxContext(ctx, `
 		INSERT INTO users (email, username, password_hash)
 		VALUES ($1, $2, $3)
-		RETURNING id, email, username, password_hash, xp, level, role, token_version, created_at, updated_at
+		RETURNING id, email, username, password_hash, xp, level, role, status, token_version, created_at, updated_at
 	`, email, username, passwordHash).StructScan(&u)
 	return &u, err
 }

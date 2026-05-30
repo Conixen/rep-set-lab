@@ -26,7 +26,9 @@ var exerciseIDOverrides = map[string]string{
 	"cable crunch":           "0175", // cable kneeling crunch
 	"lunges":                 "0336", // dumbbell lunge
 	"rear delt fly":          "0154", // cable cross-over reverse fly
-	"face pull":              "0203", // cable rear delt row (with rope) — closest ExerciseDB match
+	"face pull":                    "0203", // cable rear delt row (with rope) — closest ExerciseDB match
+	"reverse barbell wrist curl":   "0082", // barbell reverse wrist curl
+	"single-leg calf raise":        "0409", // dumbbell single leg calf raise
 }
 
 type ExerciseDBClient struct {

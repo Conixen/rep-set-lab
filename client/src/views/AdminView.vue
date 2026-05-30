@@ -17,36 +17,51 @@
       <div v-if="aiLoading" class="text-white/40 text-sm text-center py-8">Loading…</div>
       <template v-else-if="aiData">
 
-        <!-- Provider stats -->
-        <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-3">
-          <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Provider stats</p>
-          <div class="overflow-x-auto">
-            <table class="w-full text-xs text-left">
-              <thead>
-                <tr class="text-white/30 border-b border-white/10">
-                  <th class="pb-2 pr-4">Provider</th>
-                  <th class="pb-2 pr-4">Calls</th>
-                  <th class="pb-2 pr-4">Valid JSON</th>
-                  <th class="pb-2 pr-4">Avg latency</th>
-                  <th class="pb-2 pr-4">Avg cost</th>
-                  <th class="pb-2">Total cost</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-white/5">
-                <tr v-for="s in aiData.provider_stats" :key="s.provider" class="text-white/70">
-                  <td class="py-2 pr-4 capitalize font-medium">{{ s.provider }}</td>
-                  <td class="py-2 pr-4">{{ s.total_calls }}</td>
-                  <td class="py-2 pr-4">
-                    <span :class="validRate(s) >= 90 ? 'text-green-400' : 'text-yellow-400'">
-                      {{ validRate(s) }}%
-                    </span>
-                  </td>
-                  <td class="py-2 pr-4">{{ s.avg_latency_ms }}ms</td>
-                  <td class="py-2 pr-4">${{ s.avg_cost_usd.toFixed(5) }}</td>
-                  <td class="py-2">${{ s.total_cost_usd.toFixed(4) }}</td>
-                </tr>
-              </tbody>
-            </table>
+        <!-- Per-model cards -->
+        <div class="space-y-2">
+          <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Per model</p>
+          <div class="flex gap-3 overflow-x-auto pb-1">
+            <div
+              v-for="s in aiData.provider_stats"
+              :key="s.provider"
+              class="bg-[#1e1e24] rounded-2xl p-4 shrink-0 w-44 space-y-2.5"
+            >
+              <p class="text-sm font-semibold capitalize truncate">{{ s.provider }}</p>
+              <div class="space-y-1.5 text-xs">
+                <div class="flex justify-between">
+                  <span class="text-white/40">Calls</span>
+                  <span>{{ s.total_calls }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-white/40">Valid JSON</span>
+                  <span :class="validRate(s) >= 90 ? 'text-green-400' : 'text-yellow-400'">{{ validRate(s) }}%</span>
+                </div>
+                <div class="border-t border-white/5 pt-1.5 flex justify-between">
+                  <span class="text-white/40">Avg in tok</span>
+                  <span>{{ s.avg_input_tokens.toLocaleString() }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-white/40">Avg out tok</span>
+                  <span>{{ s.avg_output_tokens.toLocaleString() }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-white/40">Total tok</span>
+                  <span>{{ (s.total_input_tokens + s.total_output_tokens).toLocaleString() }}</span>
+                </div>
+                <div class="border-t border-white/5 pt-1.5 flex justify-between">
+                  <span class="text-white/40">Avg latency</span>
+                  <span>{{ s.avg_latency_ms }}ms</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-white/40">Avg cost</span>
+                  <span>${{ s.avg_cost_usd.toFixed(4) }}</span>
+                </div>
+                <div class="flex justify-between font-medium">
+                  <span class="text-white/40">Total cost</span>
+                  <span class="text-violet-400">${{ s.total_cost_usd.toFixed(3) }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -243,12 +258,16 @@ interface AIRequest {
 }
 
 interface ProviderStat {
-  provider: string
-  total_calls: number
-  valid_calls: number
-  avg_latency_ms: number
-  avg_cost_usd: number
-  total_cost_usd: number
+  provider:            string
+  total_calls:         number
+  valid_calls:         number
+  avg_latency_ms:      number
+  avg_cost_usd:        number
+  total_cost_usd:      number
+  avg_input_tokens:    number
+  avg_output_tokens:   number
+  total_input_tokens:  number
+  total_output_tokens: number
 }
 
 interface AIData {

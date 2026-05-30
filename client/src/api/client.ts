@@ -16,8 +16,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     throw new Error('Session expired')
   }
   if (res.status === 403) {
-    window.location.href = '/pending'
-    throw new Error('Account pending approval')
+    const body = await res.json().catch(() => ({}))
+    if (body.error === 'account pending approval') {
+      window.location.href = '/pending'
+      throw new Error('Account pending approval')
+    }
+    throw new Error(body.error ?? 'Forbidden')
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))

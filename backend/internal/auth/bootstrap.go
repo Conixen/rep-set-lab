@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"log/slog"
 
 	"golang.org/x/crypto/bcrypt"
@@ -24,6 +26,10 @@ func BootstrapAdmin(ctx context.Context, store bootstrapStore, email, password s
 	}
 
 	user, err := store.GetByEmail(ctx, email)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		logger.Error("bootstrap admin: failed to look up account", "error", err)
+		return
+	}
 	if err != nil {
 		// User doesn't exist yet — create them.
 		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

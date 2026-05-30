@@ -69,11 +69,11 @@ const baseTabs = [
   { to: '/profile', label: 'Profile', icon: IconProfile },
 ]
 
-const adminTab = { to: '/admin', label: 'Admin', icon: IconAdmin }
-
-const tabs = computed(() =>
-  auth.isAdmin ? [...baseTabs, adminTab] : baseTabs
-)
+const tabs = computed(() => {
+  if (!auth.isAdmin) return baseTabs
+  const adminTab = { to: '/admin', label: 'Admin', icon: IconAdmin }
+  return [...baseTabs.slice(0, -1), adminTab, baseTabs[baseTabs.length - 1]]
+})
 
 const toast = ref<string | null>(null)
 let ws: WebSocket | null = null

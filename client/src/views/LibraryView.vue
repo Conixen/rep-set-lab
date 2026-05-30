@@ -120,7 +120,7 @@ const selectedExercise = ref<Exercise | null>(null)
 
 const filters = computed(() => {
   const groups = [...new Set(exercises.value.map(e => e.muscle_group).filter(Boolean))]
-  return ['All', ...groups.slice(0, 5)]
+  return ['All', ...groups]
 })
 
 const filteredExercises = computed(() =>
