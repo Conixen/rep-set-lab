@@ -7,6 +7,16 @@ export interface LibraryExercise {
   aliases: string[]
 }
 
+// Equipment that only exists in a gym. Exercises using these are excluded
+// from GIF matches when the user's environment is 'home' or 'outdoor'.
+export const GYM_ONLY_EQUIPMENT = new Set([
+  'barbell',
+  'cable machine',
+  'machine',
+  'leg press machine',
+  'dip bars',
+])
+
 export function normalize(s: string): string[] {
   return s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(' ').filter(Boolean)
 }
@@ -14,7 +24,8 @@ export function normalize(s: string): string[] {
 export function findLibraryMatch(
   aiName: string,
   muscleHints: string[],
-  library: LibraryExercise[]
+  library: LibraryExercise[],
+  environment = 'gym'
 ): LibraryExercise | null {
   const aiWords = normalize(aiName)
   if (aiWords.length === 0) return null
@@ -23,6 +34,7 @@ export function findLibraryMatch(
 
   for (const ex of library) {
     if (!ex.gif_url) continue
+    if (environment !== 'gym' && GYM_ONLY_EQUIPMENT.has(ex.equipment)) continue
 
     const candidates = [ex.name, ...(ex.aliases ?? [])]
     let maxOverlap = 0

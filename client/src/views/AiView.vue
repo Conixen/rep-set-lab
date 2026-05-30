@@ -94,11 +94,26 @@
         </div>
 
         <div class="space-y-2">
-          <p class="text-sm text-white/60">Write your own prompt <span class="text-white/30">(optional)</span></p>
+          <div class="flex items-center gap-2">
+            <p class="text-sm text-white/60">Extra notes <span class="text-white/30">(optional)</span></p>
+            <button
+              @click="showPromptTip = !showPromptTip"
+              class="w-4 h-4 rounded-full bg-white/10 text-white/40 text-xs flex items-center justify-center hover:bg-white/20 hover:text-white/70 transition-colors shrink-0"
+              aria-label="What to write here"
+            >?</button>
+          </div>
+          <div v-if="showPromptTip" class="bg-white/5 rounded-xl px-4 py-3 text-xs text-white/50 space-y-1">
+            <p class="text-white/70 font-medium mb-1">Add any extra context for a better workout:</p>
+            <p>• Bad lower back but can still row — just no deadlifts</p>
+            <p>• Only dumbbells and a pull-up bar at home</p>
+            <p>• No barbell at my gym, cables and dumbbells only</p>
+            <p>• Avoid all pressing movements, prefer pulls today</p>
+            <p>• Powerlifting meet next month — heavy compounds only</p>
+          </div>
           <textarea
             v-model="prompt"
             rows="3"
-            placeholder="e.g. I'm preparing for a powerlifting meet next month, focus on heavy compounds, keep rest periods under 90s..."
+            placeholder="e.g. bad lower back but can still row — just no deadlifts, only dumbbells at home..."
             class="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500 resize-none"
           />
         </div>
@@ -248,6 +263,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { api } from '../api/client'
 import { findLibraryMatch, type LibraryExercise } from '../utils/exerciseMatch'
+import { toMessage } from '../utils/error'
 
 interface Exercise {
   name: string
@@ -305,6 +321,7 @@ const goal                 = ref('Muscle gain')
 const injuries             = ref('')
 const prompt               = ref('')
 const environment          = ref('gym')
+const showPromptTip        = ref(false)
 
 const effectiveDuration = computed(() => {
   const custom = parseInt(customDuration.value)
@@ -354,7 +371,7 @@ const exerciseGifMap = computed<Record<string, string>>(() => {
   const map: Record<string, string> = {}
   for (const name of allNames) {
     if (map[name] !== undefined) continue
-    const match = findLibraryMatch(name, selectedMuscleGroups.value, libraryExercises.value)
+    const match = findLibraryMatch(name, selectedMuscleGroups.value, libraryExercises.value, environment.value)
     if (match?.gif_url) map[name] = match.gif_url
   }
   return map
@@ -379,7 +396,7 @@ async function generate() {
       environment:      environment.value,
     })
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to generate workout'
+    error.value = toMessage(e, 'Failed to generate workout')
   } finally {
     loading.value = false
   }
@@ -392,15 +409,16 @@ async function complete() {
   try {
     xpResult.value = await api.post<XPResult>(`/workouts/${result.value.workout.id}/complete`, {})
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to complete workout'
+    error.value = toMessage(e, 'Failed to complete workout')
   } finally {
     completing.value = false
   }
 }
 
 function reset() {
-  result.value  = null
-  xpResult.value = null
-  error.value   = ''
+  result.value       = null
+  xpResult.value     = null
+  error.value        = ''
+  showPromptTip.value = false
 }
 </script>

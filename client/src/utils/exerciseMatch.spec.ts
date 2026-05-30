@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { normalize, findLibraryMatch, type LibraryExercise } from './exerciseMatch'
+import { normalize, findLibraryMatch, GYM_ONLY_EQUIPMENT, type LibraryExercise } from './exerciseMatch'
 
 const ex = (overrides: Partial<LibraryExercise> & { name: string }): LibraryExercise => ({
   id: 1,
@@ -75,5 +75,39 @@ describe('findLibraryMatch', () => {
     const strong = ex({ id: 2, name: 'Barbell Bench Press', muscle_group: 'chest', aliases: ['bench press', 'flat bench'] })
     const result = findLibraryMatch('Barbell Bench Press', ['chest'], [weak, strong])
     expect(result?.name).toBe('Barbell Bench Press')
+  })
+})
+
+describe('findLibraryMatch — equipment filtering', () => {
+  it('excludes barbell exercises when environment is home', () => {
+    const library = [ex({ name: 'Barbell Bench Press', equipment: 'barbell', muscle_group: 'chest' })]
+    expect(findLibraryMatch('Barbell Bench Press', ['chest'], library, 'home')).toBeNull()
+  })
+
+  it('includes barbell exercises when environment is gym', () => {
+    const library = [ex({ name: 'Barbell Bench Press', equipment: 'barbell', muscle_group: 'chest' })]
+    expect(findLibraryMatch('Barbell Bench Press', ['chest'], library, 'gym')?.name).toBe('Barbell Bench Press')
+  })
+
+  it('includes bodyweight exercises at home', () => {
+    const library = [ex({ name: 'Push-Up', equipment: 'none', muscle_group: 'chest' })]
+    expect(findLibraryMatch('Push-Up', ['chest'], library, 'home')?.name).toBe('Push-Up')
+  })
+
+  it('excludes barbell exercises when environment is outdoor', () => {
+    const library = [ex({ name: 'Barbell Squat', equipment: 'barbell', muscle_group: 'legs' })]
+    expect(findLibraryMatch('Barbell Squat', ['legs'], library, 'outdoor')).toBeNull()
+  })
+
+  it('defaults to gym behavior when environment is not provided', () => {
+    const library = [ex({ name: 'Barbell Bench Press', equipment: 'barbell', muscle_group: 'chest' })]
+    expect(findLibraryMatch('Barbell Bench Press', ['chest'], library)?.name).toBe('Barbell Bench Press')
+  })
+
+  it('GYM_ONLY_EQUIPMENT contains the expected gym-specific equipment', () => {
+    expect(GYM_ONLY_EQUIPMENT.has('barbell')).toBe(true)
+    expect(GYM_ONLY_EQUIPMENT.has('cable machine')).toBe(true)
+    expect(GYM_ONLY_EQUIPMENT.has('none')).toBe(false)
+    expect(GYM_ONLY_EQUIPMENT.has('dumbbells')).toBe(false)
   })
 })
