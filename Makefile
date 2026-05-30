@@ -16,7 +16,10 @@ client:
 	cd client && npm run dev
 
 dev:
-	$(MAKE) -j2 run client
+	$(MAKE) -j2 air client
+
+air:
+	cd backend && air
 
 stop:
 	powershell -ExecutionPolicy Bypass -Command "Get-NetTCPConnection -LocalPort 8080,5173 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id \$$_.OwningProcess -Force -ErrorAction SilentlyContinue }; Write-Host 'Stopped'"
