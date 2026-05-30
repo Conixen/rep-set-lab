@@ -28,7 +28,8 @@
       <div
         v-for="ex in filteredExercises"
         :key="ex.id"
-        class="bg-[#1e1e24] rounded-2xl p-4 space-y-2"
+        @click="selectedExercise = ex"
+        class="bg-[#1e1e24] rounded-2xl p-4 space-y-2 cursor-pointer active:scale-95 transition-transform"
       >
         <img
           v-if="ex.gif_url || ex.thumbnail_url"
@@ -49,15 +50,60 @@
       </div>
     </div>
   </div>
+
+  <!-- Exercise detail popup -->
+  <Teleport to="body">
+    <div
+      v-if="selectedExercise"
+      class="fixed inset-0 z-50 flex items-end justify-center bg-black/75 pb-6 px-4"
+      @click.self="selectedExercise = null"
+    >
+      <div class="bg-[#1e1e24] rounded-2xl w-full max-w-sm relative overflow-hidden">
+        <button
+          @click="selectedExercise = null"
+          class="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/40 text-white/50 hover:text-white text-lg flex items-center justify-center transition-colors"
+          aria-label="Close"
+        >✕</button>
+
+        <img
+          v-if="selectedExercise.gif_url || selectedExercise.thumbnail_url"
+          :src="(selectedExercise.gif_url || selectedExercise.thumbnail_url)!"
+          :alt="selectedExercise.name"
+          class="w-full rounded-t-2xl bg-white/5"
+        />
+        <div v-else class="h-48 bg-white/5 rounded-t-2xl flex items-center justify-center text-white/20 text-sm">
+          No image
+        </div>
+
+        <div class="p-4 space-y-3">
+          <p class="font-bold text-base pr-6">{{ selectedExercise.name }}</p>
+
+          <div class="flex flex-wrap gap-1.5">
+            <span
+              v-for="tag in [selectedExercise.muscle_group, selectedExercise.difficulty, selectedExercise.equipment].filter(Boolean)"
+              :key="tag"
+              class="text-xs bg-violet-500/20 text-violet-400 px-2.5 py-1 rounded-full"
+            >{{ tag }}</span>
+          </div>
+
+          <p v-if="selectedExercise.description" class="text-sm text-white/60 leading-relaxed">
+            {{ selectedExercise.description }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { api } from '../api/client'
+import { toMessage } from '../utils/error'
 
 interface Exercise {
   id:            number
   name:          string
+  description:   string
   muscle_group:  string
   difficulty:    string
   equipment:     string
@@ -65,11 +111,12 @@ interface Exercise {
   gif_url:       string | null
 }
 
-const exercises   = ref<Exercise[]>([])
-const search      = ref('')
-const activeFilter = ref('All')
-const loading     = ref(true)
-const error       = ref('')
+const exercises        = ref<Exercise[]>([])
+const search           = ref('')
+const activeFilter     = ref('All')
+const loading          = ref(true)
+const error            = ref('')
+const selectedExercise = ref<Exercise | null>(null)
 
 const filters = computed(() => {
   const groups = [...new Set(exercises.value.map(e => e.muscle_group).filter(Boolean))]
@@ -88,7 +135,7 @@ onMounted(async () => {
   try {
     exercises.value = await api.get<Exercise[]>('/exercises')
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to load exercises'
+    error.value = toMessage(e, 'Failed to load exercises')
   } finally {
     loading.value = false
   }
