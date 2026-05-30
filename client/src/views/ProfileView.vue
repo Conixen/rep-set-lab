@@ -59,6 +59,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { api } from '../api/client'
+import { toMessage } from '../utils/error'
 
 interface Stats {
   username:            string
@@ -95,7 +96,7 @@ onMounted(async () => {
   try {
     stats.value = await api.get<Stats>('/users/me/stats')
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to load profile'
+    error.value = toMessage(e, 'Failed to load profile')
   } finally {
     loading.value = false
   }

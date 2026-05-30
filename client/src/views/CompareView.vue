@@ -261,6 +261,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { api } from '../api/client'
+import { toMessage } from '../utils/error'
 
 interface Exercise {
   name: string
@@ -377,7 +378,7 @@ async function compare() {
     })
     results.value = data.results.sort((a, b) => a.latency_ms - b.latency_ms)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to run comparison'
+    error.value = toMessage(e, 'Failed to run comparison')
   } finally {
     loading.value = false
   }

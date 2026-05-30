@@ -52,6 +52,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { toMessage } from '../utils/error'
 
 const auth   = useAuthStore()
 const router = useRouter()
@@ -74,7 +75,7 @@ async function submit() {
     }
     router.push('/')
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Something went wrong'
+    error.value = toMessage(e, 'Something went wrong')
   } finally {
     loading.value = false
   }

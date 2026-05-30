@@ -18,7 +18,7 @@
         <div class="flex items-start justify-between gap-2">
           <div>
             <p class="font-semibold capitalize">{{ w.muscle_group }}</p>
-            <p class="text-xs text-white/40 mt-0.5">{{ formatDate(w.created_at) }}</p>
+            <p class="text-xs text-white/40 mt-0.5">{{ formatDateLong(w.created_at) }}</p>
           </div>
           <span
             :class="w.completed_at?.Valid ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/40'"
@@ -45,6 +45,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { api } from '../api/client'
+import { toMessage } from '../utils/error'
+import { formatDateLong } from '../utils/date'
 
 interface NullTime {
   Time:  string
@@ -70,17 +72,11 @@ onMounted(async () => {
     const data = await api.get<{ workouts: Workout[] }>('/workouts')
     workouts.value = data.workouts ?? []
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to load history'
+    error.value = toMessage(e, 'Failed to load history')
   } finally {
     loading.value = false
   }
 })
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('sv-SE', {
-    weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
-}
 
 function progressDelta(w: Workout): number | null {
   const prev = workouts.value.find(
