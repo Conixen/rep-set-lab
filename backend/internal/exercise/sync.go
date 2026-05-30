@@ -9,9 +9,11 @@ import (
 
 // SyncResult summarises the outcome of a media sync run.
 type SyncResult struct {
-	Total  int `json:"total"`
-	GIFs   int `json:"gifs"`
-	Errors int `json:"errors"`
+	Total   int      `json:"total"`
+	Skipped int      `json:"skipped"`  // already had a GIF
+	GIFs    int      `json:"gifs"`     // newly updated
+	NoMatch []string `json:"no_match"` // no ExerciseDB result found
+	Failed  []string `json:"failed"`   // API or DB error
 }
 
 type exerciseMediaStore interface {
@@ -47,7 +49,11 @@ func (s *SyncService) Sync(ctx context.Context) (SyncResult, error) {
 		return SyncResult{}, err
 	}
 
-	result := SyncResult{Total: len(all)}
+	result := SyncResult{
+		Total:   len(all),
+		NoMatch: []string{},
+		Failed:  []string{},
+	}
 
 	for _, ex := range all {
 		if ctx.Err() != nil {
@@ -55,15 +61,18 @@ func (s *SyncService) Sync(ctx context.Context) (SyncResult, error) {
 		}
 
 		if s.exerciseDB == nil || (ex.GifURL.Valid && ex.GifURL.String != "") {
+			result.Skipped++
 			continue
 		}
 
 		g, err := s.exerciseDB.FetchGIF(ctx, ex.Name)
 		if err != nil {
-			result.Errors++
-		} else if g != "" {
+			result.Failed = append(result.Failed, ex.Name)
+		} else if g == "" {
+			result.NoMatch = append(result.NoMatch, ex.Name)
+		} else {
 			if err := s.exercises.UpdateMedia(ctx, ex.ID, "", g); err != nil {
-				result.Errors++
+				result.Failed = append(result.Failed, ex.Name)
 			} else {
 				result.GIFs++
 			}

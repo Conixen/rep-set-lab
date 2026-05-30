@@ -64,8 +64,11 @@ func TestSync_GIFAlreadyPopulated_NoAPICalls(t *testing.T) {
 	if result.Total != 1 {
 		t.Errorf("Total = %d, want 1", result.Total)
 	}
-	if result.GIFs != 0 || result.Errors != 0 {
-		t.Errorf("want no increments, got GIFs=%d Errors=%d", result.GIFs, result.Errors)
+	if result.GIFs != 0 || len(result.Failed) != 0 {
+		t.Errorf("want no increments, got GIFs=%d Failed=%v", result.GIFs, result.Failed)
+	}
+	if result.Skipped != 1 {
+		t.Errorf("Skipped = %d, want 1", result.Skipped)
 	}
 	if len(store.mediaUpdates) != 0 {
 		t.Errorf("expected no UpdateMedia calls, got %v", store.mediaUpdates)
@@ -82,8 +85,8 @@ func TestSync_MissingGIF(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.GIFs != 1 || result.Errors != 0 {
-		t.Errorf("want GIFs=1, got %+v", result)
+	if result.GIFs != 1 || len(result.Failed) != 0 {
+		t.Errorf("want GIFs=1 Failed=[], got %+v", result)
 	}
 	if store.mediaUpdates[3][1] != "/api/v1/exercises/image/0002" {
 		t.Errorf("gif not saved, updates=%v", store.mediaUpdates)
@@ -101,12 +104,15 @@ func TestSync_NoExerciseDBKey_SkipsAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.GIFs != 0 || result.Errors != 0 {
+	if result.GIFs != 0 || len(result.Failed) != 0 {
 		t.Errorf("expected no updates with nil exerciseDB, got %+v", result)
+	}
+	if result.Skipped != 1 {
+		t.Errorf("Skipped = %d, want 1", result.Skipped)
 	}
 }
 
-func TestSync_GIFFetchError_IncrementsErrors(t *testing.T) {
+func TestSync_GIFFetchError_IncrementsFailed(t *testing.T) {
 	store := &stubExerciseStore{exercises: []*database.Exercise{
 		{ID: 6, Name: "Row", GifURL: nullStr()},
 	}}
@@ -116,12 +122,31 @@ func TestSync_GIFFetchError_IncrementsErrors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.Errors != 1 {
-		t.Errorf("Errors = %d, want 1", result.Errors)
+	if len(result.Failed) != 1 || result.Failed[0] != "Row" {
+		t.Errorf("Failed = %v, want [Row]", result.Failed)
 	}
 }
 
-func TestSync_UpdateMediaError_IncrementsErrors(t *testing.T) {
+func TestSync_NoMatch_PopulatesNoMatch(t *testing.T) {
+	store := &stubExerciseStore{exercises: []*database.Exercise{
+		{ID: 5, Name: "Obscure Exercise", GifURL: nullStr()},
+	}}
+	// empty url = no ExerciseDB match
+	svc := exercise.NewSyncService(store, &stubGIFFetcher{url: ""})
+
+	result, err := svc.Sync(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.NoMatch) != 1 || result.NoMatch[0] != "Obscure Exercise" {
+		t.Errorf("NoMatch = %v, want [Obscure Exercise]", result.NoMatch)
+	}
+	if result.GIFs != 0 {
+		t.Errorf("GIFs = %d, want 0", result.GIFs)
+	}
+}
+
+func TestSync_UpdateMediaError_IncrementsFailed(t *testing.T) {
 	store := &stubExerciseStore{
 		exercises: []*database.Exercise{
 			{ID: 7, Name: "Lunge", GifURL: nullStr()},
@@ -134,7 +159,7 @@ func TestSync_UpdateMediaError_IncrementsErrors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.Errors != 1 {
-		t.Errorf("Errors = %d, want 1", result.Errors)
+	if len(result.Failed) != 1 || result.Failed[0] != "Lunge" {
+		t.Errorf("Failed = %v, want [Lunge]", result.Failed)
 	}
 }
