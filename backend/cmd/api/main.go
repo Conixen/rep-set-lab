@@ -70,6 +70,9 @@ func main() {
 	if cfg.OpenAIKey != "" {
 		providers["openai"] = ai.NewOpenAI(cfg.OpenAIKey)
 	}
+	if cfg.GroqKey != "" {
+		providers["groq"] = ai.NewGroq(cfg.GroqKey)
+	}
 	if cfg.GeminiKey != "" {
 		geminiModels := []struct{ id, name string }{
 			{"gemini-2.5-flash", "gemini-2.5-flash"},

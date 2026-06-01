@@ -13,6 +13,7 @@ type Config struct {
 	AnthropicKey         string
 	OpenAIKey            string
 	GeminiKey            string
+	GroqKey              string
 	ExerciseDBKey        string
 	AllowedOrigins       []string
 	BootstrapAdminEmail  string
@@ -27,6 +28,7 @@ func Load() (*Config, error) {
 		AnthropicKey:        os.Getenv("ANTHROPIC_API_KEY"),
 		OpenAIKey:           os.Getenv("OPENAI_API_KEY"),
 		GeminiKey:           os.Getenv("GEMINI_API_KEY"),
+		GroqKey:             os.Getenv("GROQ_API_KEY"),
 		ExerciseDBKey:       os.Getenv("EXERCISEDB_API_KEY"),
 		AllowedOrigins:      parseList(getEnv("ALLOWED_ORIGINS", "http://localhost:5173")),
 		BootstrapAdminEmail: os.Getenv("BOOTSTRAP_ADMIN_EMAIL"),
