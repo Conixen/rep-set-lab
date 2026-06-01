@@ -51,27 +51,26 @@ func main() {
 	}
 	logger.Info("migrations applied")
 
-	userStore := database.NewUserStore(db)
+	userStore          := database.NewUserStore(db)
 	auth.BootstrapAdmin(context.Background(), userStore, cfg.BootstrapAdminEmail, cfg.BootstrapAdminPass, logger)
-	workoutStore   := database.NewWorkoutStore(db)
-	exerciseStore  := database.NewExerciseStore(db)
-	aiRequestStore := database.NewAIRequestStore(db)
+	workoutStore        := database.NewWorkoutStore(db)
+	exerciseStore       := database.NewExerciseStore(db)
+	aiRequestStore      := database.NewAIRequestStore(db)
+	compareMetricsStore := database.NewCompareMetricsStore(db)
 
 	// Seed exercise library (ON CONFLICT DO NOTHING — safe to run every boot)
 	if err := exerciseStore.Seed(context.Background(), exercise.DefaultExercises()); err != nil {
 		logger.Error("seed exercises", "error", err)
 	}
 
-	// AI providers — only register providers with keys configured
+	// AI providers — only register providers with keys configured.
+	// Groq is excluded from workout generators and used only as the neutral grader.
 	providers := make(map[string]ai.Provider)
 	if cfg.AnthropicKey != "" {
 		providers["claude"] = ai.NewClaude(cfg.AnthropicKey)
 	}
 	if cfg.OpenAIKey != "" {
 		providers["openai"] = ai.NewOpenAI(cfg.OpenAIKey)
-	}
-	if cfg.GroqKey != "" {
-		providers["groq"] = ai.NewGroq(cfg.GroqKey)
 	}
 	if cfg.GeminiKey != "" {
 		geminiModels := []struct{ id, name string }{
@@ -88,6 +87,16 @@ func main() {
 		}
 	}
 
+	// Groq as neutral grader — separate from providers map so it evaluates others without self-grading.
+	// GroqGrader also satisfies admin.Narrator for the aggregate session analysis endpoint.
+	var grader ai.Grader
+	var narrator admin.Narrator
+	if cfg.GroqKey != "" {
+		g := ai.NewGroqGrader(cfg.GroqKey)
+		grader = g
+		narrator = g
+	}
+
 	hub := ws.NewHub(logger, cfg.AllowedOrigins)
 	svc := workout.NewService(workoutStore, userStore, providers, hub, aiRequestStore).
 		WithExerciseLister(exerciseStore)
@@ -95,7 +104,7 @@ func main() {
 	workoutHandler  := workout.NewHandler(svc, workoutStore)
 	userHandler     := user.NewHandler(userStore, workoutStore)
 	exerciseHandler := exercise.NewHandler(exerciseStore, cfg.ExerciseDBKey)
-	compareHandler  := ai.NewCompareHandler(providers, aiRequestStore)
+	compareHandler  := ai.NewCompareHandler(providers, grader, exerciseStore, aiRequestStore, compareMetricsStore)
 
 	var exerciseDBClient exercise.GIFFetcher
 	if cfg.ExerciseDBKey != "" {
@@ -103,7 +112,7 @@ func main() {
 	}
 	syncSvc := exercise.NewSyncService(exerciseStore, exerciseDBClient)
 
-	adminHandler := admin.NewHandler(userStore, workoutStore, syncSvc, aiRequestStore)
+	adminHandler := admin.NewHandler(userStore, workoutStore, syncSvc, aiRequestStore, compareMetricsStore, narrator)
 
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -148,7 +157,10 @@ func main() {
 		adminGroup.GET("/workouts/:id",        adminHandler.GetWorkout)
 		adminGroup.PUT("/workouts/:id",        adminHandler.UpdateWorkout)
 		adminGroup.POST("/exercises/sync",     adminHandler.SyncExercises)
-		adminGroup.GET("/ai-requests",         adminHandler.ListAIRequests)
+		adminGroup.GET("/ai-requests",          adminHandler.ListAIRequests)
+		adminGroup.GET("/ai-compare-stats",     adminHandler.CompareStats)
+		adminGroup.GET("/compare/latest",       adminHandler.LatestSession)
+		adminGroup.POST("/compare/narrative",   adminHandler.NarrativeAnalysis)
 	}
 
 	r.GET("/ws", auth.WSMiddleware(cfg.JWTSecret), hub.Handler)

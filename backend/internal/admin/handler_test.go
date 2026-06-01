@@ -15,6 +15,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/leonj/rep-set-lab/internal/admin"
+	"github.com/leonj/rep-set-lab/internal/ai"
 	"github.com/leonj/rep-set-lab/internal/auth"
 	"github.com/leonj/rep-set-lab/internal/database"
 	"github.com/leonj/rep-set-lab/internal/exercise"
@@ -147,6 +148,62 @@ func (s *stubAIRequestStore) ProviderStats(_ context.Context) ([]*database.AIPro
 	return nil, nil
 }
 
+type stubCompareMetricsStore struct{}
+
+func (s *stubCompareMetricsStore) ProviderAverages(_ context.Context) ([]*database.ProviderCompareAvg, error) {
+	return nil, nil
+}
+func (s *stubCompareMetricsStore) LatestSession(_ context.Context) ([]*database.CompareMetric, error) {
+	return nil, nil
+}
+func (s *stubCompareMetricsStore) SessionCount(_ context.Context) (int, error) { return 0, nil }
+
+// mockCompareMetricsStore is a configurable version used by compare-specific tests.
+type mockCompareMetricsStore struct {
+	latestRows   []*database.CompareMetric
+	avgs         []*database.ProviderCompareAvg
+	sessionCount int
+}
+
+func (m *mockCompareMetricsStore) ProviderAverages(_ context.Context) ([]*database.ProviderCompareAvg, error) {
+	return m.avgs, nil
+}
+func (m *mockCompareMetricsStore) LatestSession(_ context.Context) ([]*database.CompareMetric, error) {
+	return m.latestRows, nil
+}
+func (m *mockCompareMetricsStore) SessionCount(_ context.Context) (int, error) {
+	return m.sessionCount, nil
+}
+
+type stubNarrator struct {
+	result *ai.SessionAnalysis
+	err    error
+}
+
+func (s *stubNarrator) AnalyzeCompare(_ context.Context, _ []*database.ProviderCompareAvg, _ int) (*ai.SessionAnalysis, error) {
+	return s.result, s.err
+}
+
+// adminRouterForCompare builds a minimal router wired for the compare endpoints.
+func adminRouterForCompare(metrics admin.CompareMetricsStore, narrator admin.Narrator) *gin.Engine {
+	users := &stubUserStore{}
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("claims", &auth.Claims{
+			UserID: 1, Username: "admin", Role: auth.RoleAdmin, TokenVersion: 1,
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+			},
+		})
+		c.Next()
+	})
+	r.Use(auth.AdminMiddleware(users))
+	h := admin.NewHandler(users, &stubWorkoutStore{}, &stubSyncer{}, &stubAIRequestStore{}, metrics, narrator)
+	r.GET("/admin/compare/latest", h.LatestSession)
+	r.POST("/admin/compare/narrative", h.NarrativeAnalysis)
+	return r
+}
+
 // adminTestRouter injects admin claims (userID=1, version=1) and wires AdminMiddleware.
 func adminTestRouter(users *stubUserStore, workouts *stubWorkoutStore) *gin.Engine {
 	return adminTestRouterWithSyncer(users, workouts, &stubSyncer{})
@@ -169,7 +226,7 @@ func adminTestRouterWithSyncer(users *stubUserStore, workouts *stubWorkoutStore,
 	})
 	r.Use(auth.AdminMiddleware(users))
 
-	h := admin.NewHandler(users, workouts, syncer, &stubAIRequestStore{})
+	h := admin.NewHandler(users, workouts, syncer, &stubAIRequestStore{}, &stubCompareMetricsStore{}, nil)
 	r.GET("/admin/users", h.ListUsers)
 	r.GET("/admin/users/:id", h.GetUser)
 	r.PUT("/admin/users/:id", h.UpdateUser)
@@ -434,6 +491,116 @@ func TestSyncExercises_Error(t *testing.T) {
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("status = %d, want 500", w.Code)
+	}
+}
+
+// --- compare tests ---
+
+func TestLatestSession_Empty(t *testing.T) {
+	r := adminRouterForCompare(&mockCompareMetricsStore{}, nil)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/admin/compare/latest", nil))
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	var body map[string]any
+	json.NewDecoder(w.Body).Decode(&body)
+	rows, ok := body["rows"].([]any)
+	if !ok || len(rows) != 0 {
+		t.Errorf("expected empty rows array, got %v", body["rows"])
+	}
+}
+
+func TestLatestSession_WithData(t *testing.T) {
+	metrics := &mockCompareMetricsStore{
+		latestRows: []*database.CompareMetric{
+			{Provider: "claude", MuscleGroup: "chest", DurationMinutes: 45, Environment: "gym", LibraryMatchRate: 0.75},
+			{Provider: "openai", MuscleGroup: "chest", DurationMinutes: 45, Environment: "gym", LibraryMatchRate: 0.60},
+		},
+	}
+	r := adminRouterForCompare(metrics, nil)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/admin/compare/latest", nil))
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	var body map[string]any
+	json.NewDecoder(w.Body).Decode(&body)
+	rows := body["rows"].([]any)
+	if len(rows) != 2 {
+		t.Errorf("len(rows) = %d, want 2", len(rows))
+	}
+}
+
+func TestNarrativeAnalysis_NoNarrator(t *testing.T) {
+	r := adminRouterForCompare(&mockCompareMetricsStore{}, nil)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/admin/compare/narrative", nil))
+
+	if w.Code != http.StatusServiceUnavailable {
+		t.Errorf("status = %d, want 503", w.Code)
+	}
+}
+
+func TestNarrativeAnalysis_NoSessions(t *testing.T) {
+	// avgs is nil → handler returns 400
+	r := adminRouterForCompare(&mockCompareMetricsStore{}, &stubNarrator{})
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/admin/compare/narrative", nil))
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", w.Code)
+	}
+}
+
+func TestNarrativeAnalysis_NarratorError(t *testing.T) {
+	metrics := &mockCompareMetricsStore{
+		avgs:         []*database.ProviderCompareAvg{{Provider: "claude", TotalSessions: 3}},
+		sessionCount: 3,
+	}
+	narrator := &stubNarrator{err: errors.New("groq timeout")}
+	r := adminRouterForCompare(metrics, narrator)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/admin/compare/narrative", nil))
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", w.Code)
+	}
+}
+
+func TestNarrativeAnalysis_OK(t *testing.T) {
+	metrics := &mockCompareMetricsStore{
+		avgs:         []*database.ProviderCompareAvg{{Provider: "claude", TotalSessions: 5}},
+		sessionCount: 5,
+	}
+	narrator := &stubNarrator{result: &ai.SessionAnalysis{
+		Narrative:    "Claude performed best overall.",
+		Verdicts:     []ai.ProviderVerdict{{Provider: "claude", Grade: "A", Summary: "Excellent structure."}},
+		SessionCount: 5,
+	}}
+	r := adminRouterForCompare(metrics, narrator)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/admin/compare/narrative", nil))
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	var body map[string]any
+	json.NewDecoder(w.Body).Decode(&body)
+	if body["narrative"] != "Claude performed best overall." {
+		t.Errorf("narrative = %v, want expected string", body["narrative"])
+	}
+	verdicts := body["verdicts"].([]any)
+	if len(verdicts) != 1 {
+		t.Errorf("len(verdicts) = %d, want 1", len(verdicts))
 	}
 }
 
