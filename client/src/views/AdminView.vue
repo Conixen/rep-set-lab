@@ -127,6 +127,191 @@
       <p v-if="aiError" class="text-red-400 text-xs">{{ aiError }}</p>
     </template>
 
+    <!-- ── Compare Analytics ── -->
+    <template v-if="activeTab === 'compare'">
+
+      <!-- Latest session -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Latest session</p>
+          <button @click="loadLatestSession" :disabled="latestLoading" class="text-xs text-violet-400 hover:text-violet-300 transition-colors disabled:opacity-40">
+            {{ latestLoading ? 'Loading…' : 'Refresh ↻' }}
+          </button>
+        </div>
+        <div v-if="latestLoading" class="text-white/40 text-sm text-center py-4">Loading…</div>
+        <div v-else-if="latestSession.length" class="flex gap-3 overflow-x-auto pb-1">
+          <div
+            v-for="row in latestSession" :key="row.provider"
+            class="bg-[#1e1e24] rounded-2xl p-4 shrink-0 w-52 space-y-2.5"
+          >
+            <div class="flex items-center justify-between">
+              <p class="text-sm font-semibold capitalize truncate">{{ row.provider }}</p>
+              <span class="text-xs text-white/30">{{ row.environment }}</span>
+            </div>
+            <!-- Groq grades (only shown if available) -->
+            <div v-if="row.groq_injury_grade" class="flex gap-1 flex-wrap">
+              <span class="text-xs px-1.5 py-0.5 rounded-md font-mono font-bold" :class="gradeColor(row.groq_injury_grade)">I:{{ row.groq_injury_grade }}</span>
+              <span class="text-xs px-1.5 py-0.5 rounded-md font-mono font-bold" :class="gradeColor(row.groq_equipment_grade ?? '')">E:{{ row.groq_equipment_grade }}</span>
+              <span class="text-xs px-1.5 py-0.5 rounded-md font-mono font-bold" :class="gradeColor(row.groq_goal_grade ?? '')">G:{{ row.groq_goal_grade }}</span>
+            </div>
+            <div class="space-y-1 text-xs">
+              <div class="flex justify-between">
+                <span class="text-white/40">Library match</span>
+                <span :class="matchColor(row.library_match_rate)">{{ pct(row.library_match_rate) }} ({{ row.library_match_count }}/{{ row.library_total_count }})</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-white/40">Est. duration</span>
+                <span>{{ row.estimated_minutes.toFixed(0) }} min</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-white/40">Structure</span>
+                <span>{{ row.completeness_score }}/4</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-white/40">Notes rate</span>
+                <span>{{ pct(row.notes_present_rate) }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-white/40">Chars</span>
+                <span>{{ row.char_count.toLocaleString() }}</span>
+              </div>
+              <div v-if="row.emoji_count > 0" class="flex justify-between">
+                <span class="text-white/40">Emoji</span>
+                <span class="text-yellow-400">{{ row.emoji_count }}</span>
+              </div>
+              <div v-if="row.equipment_violations > 0" class="flex justify-between">
+                <span class="text-white/40">Equip. ✗</span>
+                <span class="text-red-400">{{ row.equipment_violations }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="!latestLoading" class="text-white/40 text-sm text-center py-4">No sessions yet.</div>
+        <p v-if="latestError" class="text-red-400 text-xs">{{ latestError }}</p>
+      </div>
+
+      <!-- Historical averages -->
+      <div v-if="compareLoading" class="text-white/40 text-sm text-center py-8">Loading…</div>
+      <template v-else-if="compareAvgs && compareAvgs.length">
+        <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-3">
+          <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">
+            Per-provider averages <span class="normal-case font-normal text-white/20">(across all compare sessions)</span>
+          </p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left">
+              <thead>
+                <tr class="text-white/30 border-b border-white/10">
+                  <th class="pb-2 pr-4">Provider</th>
+                  <th class="pb-2 pr-4">Sessions</th>
+                  <th class="pb-2 pr-4">Library match</th>
+                  <th class="pb-2 pr-4">Est. min</th>
+                  <th class="pb-2 pr-4">Completeness</th>
+                  <th class="pb-2 pr-4">Main ex.</th>
+                  <th class="pb-2 pr-4">Notes %</th>
+                  <th class="pb-2 pr-4">Emoji</th>
+                  <th class="pb-2 pr-4">Equip. ✗</th>
+                  <th class="pb-2 pr-4">Chars</th>
+                  <th class="pb-2 pr-4">Injury avg</th>
+                  <th class="pb-2 pr-4">Equip. avg</th>
+                  <th class="pb-2">Goal avg</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                <tr v-for="a in compareAvgs" :key="a.provider" class="text-white/70">
+                  <td class="py-2 pr-4 font-medium capitalize">{{ a.provider }}</td>
+                  <td class="py-2 pr-4">{{ a.total_sessions }}</td>
+                  <td class="py-2 pr-4" :class="matchColor(a.avg_library_match_rate)">{{ pct(a.avg_library_match_rate) }}</td>
+                  <td class="py-2 pr-4">{{ a.avg_estimated_minutes.toFixed(1) }}</td>
+                  <td class="py-2 pr-4">{{ a.avg_completeness_score.toFixed(1) }}/4</td>
+                  <td class="py-2 pr-4">{{ a.avg_main_count.toFixed(1) }}</td>
+                  <td class="py-2 pr-4">{{ pct(a.avg_notes_present_rate) }}</td>
+                  <td class="py-2 pr-4">{{ a.avg_emoji_count.toFixed(1) }}</td>
+                  <td class="py-2 pr-4" :class="a.avg_equipment_violations > 0 ? 'text-red-400' : 'text-green-400'">{{ a.avg_equipment_violations.toFixed(1) }}</td>
+                  <td class="py-2 pr-4">{{ Math.round(a.avg_char_count).toLocaleString() }}</td>
+                  <td class="py-2 pr-4" :class="scoreColor(a.avg_groq_injury_score)">{{ a.avg_groq_injury_score.toFixed(1) }}/5</td>
+                  <td class="py-2 pr-4" :class="scoreColor(a.avg_groq_equipment_score)">{{ a.avg_groq_equipment_score.toFixed(1) }}/5</td>
+                  <td class="py-2" :class="scoreColor(a.avg_groq_goal_score)">{{ a.avg_groq_goal_score.toFixed(1) }}/5</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Per-provider section detail cards -->
+        <div class="space-y-2">
+          <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Section averages</p>
+          <div class="flex gap-3 overflow-x-auto pb-1">
+            <div
+              v-for="a in compareAvgs" :key="'card-' + a.provider"
+              class="bg-[#1e1e24] rounded-2xl p-4 shrink-0 w-48 space-y-2.5"
+            >
+              <p class="text-sm font-semibold capitalize truncate">{{ a.provider }}</p>
+              <div class="space-y-1.5 text-xs">
+                <div class="flex justify-between">
+                  <span class="text-white/40">Warm-up</span>
+                  <span>{{ a.avg_warm_up_count.toFixed(1) }} ex.</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-white/40">Main</span>
+                  <span>{{ a.avg_main_count.toFixed(1) }} ex.</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-white/40">Cool-down</span>
+                  <span>{{ a.avg_cool_down_count.toFixed(1) }} ex.</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-white/40">Tips</span>
+                  <span>{{ a.avg_tips_count.toFixed(1) }}</span>
+                </div>
+                <div class="border-t border-white/5 pt-1.5 flex justify-between">
+                  <span class="text-white/40">Avg note len</span>
+                  <span>{{ a.avg_notes_present_rate > 0 ? (a.avg_char_count * a.avg_notes_present_rate / Math.max(a.avg_main_count, 1)).toFixed(0) : '—' }} ch</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Narrative analysis -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">AI narrative analysis</p>
+            <button
+              @click="runAnalysis"
+              :disabled="analysisLoading"
+              class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-violet-500 hover:bg-violet-400 text-white font-medium transition-colors disabled:opacity-50"
+            >
+              <span v-if="analysisLoading" class="inline-block w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></span>
+              {{ analysisLoading ? 'Analyzing…' : 'Analyze all sessions ✦' }}
+            </button>
+          </div>
+          <template v-if="analysis">
+            <p class="text-xs text-white/30">Based on {{ analysis.session_count }} sessions</p>
+            <!-- Per-provider verdict chips -->
+            <div class="flex gap-2 flex-wrap">
+              <div
+                v-for="v in analysis.verdicts" :key="v.provider"
+                class="bg-[#1e1e24] rounded-xl p-3 flex items-start gap-3 min-w-0"
+              >
+                <span class="text-xl font-bold leading-none mt-0.5" :class="gradeTextColor(v.grade)">{{ v.grade }}</span>
+                <div class="min-w-0">
+                  <p class="text-sm font-medium capitalize">{{ v.provider }}</p>
+                  <p class="text-xs text-white/40 leading-relaxed">{{ v.summary }}</p>
+                </div>
+              </div>
+            </div>
+            <!-- Narrative text -->
+            <div class="bg-[#1e1e24] rounded-2xl p-4">
+              <p class="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">{{ analysis.narrative }}</p>
+            </div>
+          </template>
+          <p v-if="analysisError" class="text-red-400 text-xs">{{ analysisError }}</p>
+        </div>
+      </template>
+      <div v-else-if="!compareLoading" class="text-white/40 text-sm text-center py-8">No compare sessions yet. Run a comparison to see analytics.</div>
+      <p v-if="compareError" class="text-red-400 text-xs">{{ compareError }}</p>
+    </template>
+
     <!-- ── Users ── -->
     <template v-if="activeTab === 'users'">
       <div v-if="usersLoading" class="text-white/40 text-sm text-center py-8">Loading…</div>
@@ -237,12 +422,13 @@ import { toMessage } from '../utils/error'
 import { formatDateTime } from '../utils/date'
 import { downloadCSV } from '../utils/csv'
 
-const tabList: { key: 'ai' | 'users' | 'exercises'; label: string }[] = [
+const tabList: { key: 'ai' | 'compare' | 'users' | 'exercises'; label: string }[] = [
   { key: 'ai',        label: 'AI Requests' },
+  { key: 'compare',   label: 'Compare' },
   { key: 'users',     label: 'Users' },
   { key: 'exercises', label: 'Exercises' },
 ]
-const activeTab = ref<'ai' | 'users' | 'exercises'>('ai')
+const activeTab = ref<'ai' | 'compare' | 'users' | 'exercises'>('ai')
 
 // ── AI Requests ──
 interface AIRequest {
@@ -364,9 +550,155 @@ async function toggleRole(u: User) {
   }
 }
 
+// ── Compare Analytics ──
+interface SessionRow {
+  provider: string
+  muscle_group: string
+  duration_minutes: number
+  environment: string
+  has_injuries: boolean
+  library_match_rate: number
+  library_match_count: number
+  library_total_count: number
+  char_count: number
+  emoji_count: number
+  equipment_violations: number
+  completeness_score: number
+  warm_up_count: number
+  main_count: number
+  cool_down_count: number
+  tips_count: number
+  notes_present_rate: number
+  estimated_minutes: number
+  groq_injury_grade?: string
+  groq_equipment_grade?: string
+  groq_goal_grade?: string
+  groq_feedback?: string
+}
+
+interface ProviderVerdict {
+  provider: string
+  grade: string
+  summary: string
+}
+
+interface SessionAnalysis {
+  narrative: string
+  verdicts: ProviderVerdict[]
+  session_count: number
+}
+
+interface ProviderCompareAvg {
+  provider: string
+  total_sessions: number
+  avg_library_match_rate: number
+  avg_char_count: number
+  avg_emoji_count: number
+  avg_equipment_violations: number
+  avg_completeness_score: number
+  avg_warm_up_count: number
+  avg_main_count: number
+  avg_cool_down_count: number
+  avg_tips_count: number
+  avg_notes_present_rate: number
+  avg_estimated_minutes: number
+  avg_groq_injury_score: number
+  avg_groq_equipment_score: number
+  avg_groq_goal_score: number
+}
+
+const compareAvgs    = ref<ProviderCompareAvg[]>([])
+const compareLoading = ref(false)
+const compareError   = ref('')
+
+async function loadCompareStats() {
+  compareLoading.value = true
+  compareError.value = ''
+  try {
+    const data = await api.get<{ provider_averages: ProviderCompareAvg[] }>('/admin/ai-compare-stats')
+    compareAvgs.value = data.provider_averages ?? []
+  } catch (e: unknown) {
+    compareError.value = toMessage(e, 'Failed to load compare stats')
+  } finally {
+    compareLoading.value = false
+  }
+}
+
+const latestSession = ref<SessionRow[]>([])
+const latestLoading = ref(false)
+const latestError   = ref('')
+
+async function loadLatestSession() {
+  latestLoading.value = true
+  latestError.value = ''
+  try {
+    const data = await api.get<{ rows: SessionRow[] }>('/admin/compare/latest')
+    latestSession.value = data.rows ?? []
+  } catch (e: unknown) {
+    latestError.value = toMessage(e, 'Failed to load latest session')
+  } finally {
+    latestLoading.value = false
+  }
+}
+
+const analysis        = ref<SessionAnalysis | null>(null)
+const analysisLoading = ref(false)
+const analysisError   = ref('')
+
+async function runAnalysis() {
+  analysisLoading.value = true
+  analysisError.value   = ''
+  analysis.value        = null
+  try {
+    analysis.value = await api.post<SessionAnalysis>('/admin/compare/narrative', {})
+  } catch (e: unknown) {
+    analysisError.value = toMessage(e, 'Analysis failed')
+  } finally {
+    analysisLoading.value = false
+  }
+}
+
+function gradeColor(grade: string) {
+  switch (grade) {
+    case 'A': return 'bg-green-500/20 text-green-400'
+    case 'B': return 'bg-green-500/10 text-green-300'
+    case 'C': return 'bg-yellow-500/20 text-yellow-400'
+    case 'D': return 'bg-orange-500/20 text-orange-400'
+    case 'F': return 'bg-red-500/20 text-red-400'
+    default:  return 'bg-white/5 text-white/40'
+  }
+}
+
+function gradeTextColor(grade: string) {
+  switch (grade) {
+    case 'A': return 'text-green-400'
+    case 'B': return 'text-green-300'
+    case 'C': return 'text-yellow-400'
+    case 'D': return 'text-orange-400'
+    case 'F': return 'text-red-400'
+    default:  return 'text-white/40'
+  }
+}
+
+function pct(rate: number) { return Math.round(rate * 100) + '%' }
+
+function matchColor(rate: number) {
+  if (rate >= 0.7) return 'text-green-400'
+  if (rate >= 0.4) return 'text-yellow-400'
+  return 'text-red-400'
+}
+
+function scoreColor(score: number) {
+  if (score >= 4) return 'text-green-400'   // avg A/B
+  if (score >= 3) return 'text-yellow-400'  // avg C
+  return 'text-red-400'                     // avg D/F
+}
+
 onMounted(() => {
   loadAI()
   loadUsers()
+  loadCompareStats()
+  loadLatestSession()
 })
 
 // ── Exercises ──
