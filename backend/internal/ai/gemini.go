@@ -35,7 +35,7 @@ func (p *GeminiProvider) Name() string { return p.name }
 func (p *GeminiProvider) GenerateWorkout(ctx context.Context, req WorkoutRequest) (WorkoutResponse, Usage, error) {
 	model := p.client.GenerativeModel(p.model)
 	model.SystemInstruction = &genai.Content{
-		Parts: []genai.Part{genai.Text(systemPrompt)},
+		Parts: []genai.Part{genai.Text(effectiveSystemPrompt(req))},
 	}
 
 	resp, err := model.GenerateContent(ctx, genai.Text(buildUserPrompt(req)))

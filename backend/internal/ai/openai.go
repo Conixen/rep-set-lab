@@ -29,7 +29,7 @@ func (p *OpenAIProvider) GenerateWorkout(ctx context.Context, req WorkoutRequest
 	completion, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Model: openaiModel,
 		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(systemPrompt),
+			openai.SystemMessage(effectiveSystemPrompt(req)),
 			openai.UserMessage(buildUserPrompt(req)),
 		},
 		MaxTokens: openai.Int(2048),

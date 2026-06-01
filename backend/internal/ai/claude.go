@@ -30,7 +30,7 @@ func (p *ClaudeProvider) GenerateWorkout(ctx context.Context, req WorkoutRequest
 		Model:     anthropic.Model(claudeModel),
 		MaxTokens: 2048,
 		System: []anthropic.TextBlockParam{
-			{Text: systemPrompt},
+			{Text: effectiveSystemPrompt(req)},
 		},
 		Messages: []anthropic.MessageParam{
 			anthropic.NewUserMessage(anthropic.NewTextBlock(buildUserPrompt(req))),
