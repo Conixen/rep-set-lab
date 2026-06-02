@@ -142,19 +142,71 @@
         <div v-else-if="latestSession.length" class="flex gap-3 overflow-x-auto pb-1">
           <div
             v-for="row in latestSession" :key="row.provider"
-            class="bg-[#1e1e24] rounded-2xl p-4 shrink-0 w-52 space-y-2.5"
+            class="bg-[#1e1e24] rounded-2xl p-4 shrink-0 w-60 space-y-3"
           >
+            <!-- Header -->
             <div class="flex items-center justify-between">
               <p class="text-sm font-semibold capitalize truncate">{{ row.provider }}</p>
               <span class="text-xs text-white/30">{{ row.environment }}</span>
             </div>
-            <!-- Groq grades (only shown if available) -->
-            <div v-if="row.groq_injury_grade" class="flex gap-1 flex-wrap">
-              <span class="text-xs px-1.5 py-0.5 rounded-md font-mono font-bold" :class="gradeColor(row.groq_injury_grade)">I:{{ row.groq_injury_grade }}</span>
-              <span class="text-xs px-1.5 py-0.5 rounded-md font-mono font-bold" :class="gradeColor(row.groq_equipment_grade ?? '')">E:{{ row.groq_equipment_grade }}</span>
-              <span class="text-xs px-1.5 py-0.5 rounded-md font-mono font-bold" :class="gradeColor(row.groq_goal_grade ?? '')">G:{{ row.groq_goal_grade }}</span>
+
+            <!-- Hero: Quality / Tokens / Cost -->
+            <div class="grid grid-cols-3 gap-2">
+              <div class="bg-white/5 rounded-xl p-2 text-center">
+                <p class="text-[10px] text-white/40 mb-1">Quality</p>
+                <span v-if="row.groq_goal_grade" class="text-lg font-bold" :class="gradeTextColor(row.groq_goal_grade)">{{ row.groq_goal_grade }}</span>
+                <span v-else class="text-lg font-bold text-white/20">—</span>
+              </div>
+              <div class="bg-white/5 rounded-xl p-2 text-center">
+                <p class="text-[10px] text-white/40 mb-1">Tokens</p>
+                <p class="text-xs font-semibold">{{ (row.input_tokens + row.output_tokens).toLocaleString() }}</p>
+              </div>
+              <div class="bg-white/5 rounded-xl p-2 text-center">
+                <p class="text-[10px] text-white/40 mb-1">Cost</p>
+                <p class="text-xs font-semibold">${{ row.cost_usd.toFixed(4) }}</p>
+              </div>
             </div>
-            <div class="space-y-1 text-xs">
+
+            <!-- Prompt sensitivity -->
+            <div class="space-y-1">
+              <p class="text-[10px] text-white/30 font-semibold tracking-widest uppercase">Prompt sensitivity</p>
+              <div class="flex gap-2">
+                <div class="flex-1 bg-white/5 rounded-lg px-2 py-1.5 flex items-center justify-between">
+                  <span class="text-[10px] text-white/40">Injury</span>
+                  <span v-if="row.groq_injury_grade" class="text-xs font-bold font-mono" :class="gradeTextColor(row.groq_injury_grade)">{{ row.groq_injury_grade }}</span>
+                  <span v-else class="text-xs text-white/20">—</span>
+                </div>
+                <div class="flex-1 bg-white/5 rounded-lg px-2 py-1.5 flex items-center justify-between">
+                  <span class="text-[10px] text-white/40">Goal</span>
+                  <span v-if="row.groq_goal_grade" class="text-xs font-bold font-mono" :class="gradeTextColor(row.groq_goal_grade)">{{ row.groq_goal_grade }}</span>
+                  <span v-else class="text-xs text-white/20">—</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Consistency -->
+            <div class="space-y-1">
+              <p class="text-[10px] text-white/30 font-semibold tracking-widest uppercase">Consistency</p>
+              <div class="flex gap-2">
+                <div class="flex-1 bg-white/5 rounded-lg px-2 py-1.5 flex items-center justify-between">
+                  <span class="text-[10px] text-white/40">Structure</span>
+                  <span class="text-xs font-semibold" :class="row.completeness_score === 3 ? 'text-green-400' : row.completeness_score >= 2 ? 'text-yellow-400' : 'text-red-400'">{{ row.completeness_score }}/3</span>
+                </div>
+                <div class="flex-1 bg-white/5 rounded-lg px-2 py-1.5 flex items-center justify-between">
+                  <span class="text-[10px] text-white/40">Latency</span>
+                  <span class="text-xs font-semibold">{{ row.latency_ms.toLocaleString() }}ms</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Expandable details -->
+            <button
+              @click="toggleExpand(row.provider)"
+              class="w-full text-[10px] text-white/30 hover:text-white/50 transition-colors text-left"
+            >
+              {{ expandedProviders.has(row.provider) ? '▾ Hide details' : '▸ Show details' }}
+            </button>
+            <div v-if="expandedProviders.has(row.provider)" class="space-y-1 text-xs border-t border-white/5 pt-2">
               <div class="flex justify-between">
                 <span class="text-white/40">Library match</span>
                 <span :class="matchColor(row.library_match_rate)">{{ pct(row.library_match_rate) }} ({{ row.library_match_count }}/{{ row.library_total_count }})</span>
@@ -164,8 +216,16 @@
                 <span>{{ row.estimated_minutes.toFixed(0) }} min</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-white/40">Structure</span>
-                <span>{{ row.completeness_score }}/4</span>
+                <span class="text-white/40">Warm-up</span>
+                <span>{{ row.warm_up_count }} ex.</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-white/40">Main</span>
+                <span>{{ row.main_count }} ex.</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-white/40">Tips</span>
+                <span>{{ row.tips_count }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-white/40">Notes rate</span>
@@ -174,6 +234,14 @@
               <div class="flex justify-between">
                 <span class="text-white/40">Chars</span>
                 <span>{{ row.char_count.toLocaleString() }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-white/40">In tokens</span>
+                <span>{{ row.input_tokens.toLocaleString() }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-white/40">Out tokens</span>
+                <span>{{ row.output_tokens.toLocaleString() }}</span>
               </div>
               <div v-if="row.emoji_count > 0" class="flex justify-between">
                 <span class="text-white/40">Emoji</span>
@@ -203,69 +271,75 @@
                 <tr class="text-white/30 border-b border-white/10">
                   <th class="pb-2 pr-4">Provider</th>
                   <th class="pb-2 pr-4">Sessions</th>
-                  <th class="pb-2 pr-4">Library match</th>
-                  <th class="pb-2 pr-4">Est. min</th>
-                  <th class="pb-2 pr-4">Completeness</th>
-                  <th class="pb-2 pr-4">Main ex.</th>
-                  <th class="pb-2 pr-4">Notes %</th>
-                  <th class="pb-2 pr-4">Emoji</th>
-                  <th class="pb-2 pr-4">Equip. ✗</th>
-                  <th class="pb-2 pr-4">Chars</th>
-                  <th class="pb-2 pr-4">Injury avg</th>
-                  <th class="pb-2 pr-4">Equip. avg</th>
-                  <th class="pb-2">Goal avg</th>
+                  <th class="pb-2 pr-4">Quality</th>
+                  <th class="pb-2 pr-4">Avg tokens</th>
+                  <th class="pb-2 pr-4">Avg cost</th>
+                  <th class="pb-2 pr-4">Injury</th>
+                  <th class="pb-2 pr-4">Goal</th>
+                  <th class="pb-2 pr-4">Structure</th>
+                  <th class="pb-2">Latency</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-white/5">
                 <tr v-for="a in compareAvgs" :key="a.provider" class="text-white/70">
                   <td class="py-2 pr-4 font-medium capitalize">{{ a.provider }}</td>
                   <td class="py-2 pr-4">{{ a.total_sessions }}</td>
-                  <td class="py-2 pr-4" :class="matchColor(a.avg_library_match_rate)">{{ pct(a.avg_library_match_rate) }}</td>
-                  <td class="py-2 pr-4">{{ a.avg_estimated_minutes.toFixed(1) }}</td>
-                  <td class="py-2 pr-4">{{ a.avg_completeness_score.toFixed(1) }}/4</td>
-                  <td class="py-2 pr-4">{{ a.avg_main_count.toFixed(1) }}</td>
-                  <td class="py-2 pr-4">{{ pct(a.avg_notes_present_rate) }}</td>
-                  <td class="py-2 pr-4">{{ a.avg_emoji_count.toFixed(1) }}</td>
-                  <td class="py-2 pr-4" :class="a.avg_equipment_violations > 0 ? 'text-red-400' : 'text-green-400'">{{ a.avg_equipment_violations.toFixed(1) }}</td>
-                  <td class="py-2 pr-4">{{ Math.round(a.avg_char_count).toLocaleString() }}</td>
-                  <td class="py-2 pr-4" :class="scoreColor(a.avg_groq_injury_score)">{{ a.avg_groq_injury_score.toFixed(1) }}/5</td>
-                  <td class="py-2 pr-4" :class="scoreColor(a.avg_groq_equipment_score)">{{ a.avg_groq_equipment_score.toFixed(1) }}/5</td>
-                  <td class="py-2" :class="scoreColor(a.avg_groq_goal_score)">{{ a.avg_groq_goal_score.toFixed(1) }}/5</td>
+                  <td class="py-2 pr-4 font-bold" :class="scoreColor(a.avg_groq_goal_score)">{{ scoreToGrade(a.avg_groq_goal_score) }}</td>
+                  <td class="py-2 pr-4">{{ Math.round(a.avg_input_tokens + a.avg_output_tokens).toLocaleString() }}</td>
+                  <td class="py-2 pr-4">${{ a.avg_cost_usd.toFixed(4) }}</td>
+                  <td class="py-2 pr-4 font-bold" :class="scoreColor(a.avg_groq_injury_score)">{{ scoreToGrade(a.avg_groq_injury_score) }}</td>
+                  <td class="py-2 pr-4 font-bold" :class="scoreColor(a.avg_groq_goal_score)">{{ scoreToGrade(a.avg_groq_goal_score) }}</td>
+                  <td class="py-2 pr-4" :class="a.avg_completeness_score >= 3 ? 'text-green-400' : a.avg_completeness_score >= 2 ? 'text-yellow-400' : 'text-red-400'">{{ a.avg_completeness_score.toFixed(1) }}/3</td>
+                  <td class="py-2">{{ Math.round(a.avg_latency_ms).toLocaleString() }}ms</td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </div>
 
-        <!-- Per-provider section detail cards -->
-        <div class="space-y-2">
-          <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Section averages</p>
-          <div class="flex gap-3 overflow-x-auto pb-1">
-            <div
-              v-for="a in compareAvgs" :key="'card-' + a.provider"
-              class="bg-[#1e1e24] rounded-2xl p-4 shrink-0 w-48 space-y-2.5"
-            >
-              <p class="text-sm font-semibold capitalize truncate">{{ a.provider }}</p>
-              <div class="space-y-1.5 text-xs">
-                <div class="flex justify-between">
-                  <span class="text-white/40">Warm-up</span>
-                  <span>{{ a.avg_warm_up_count.toFixed(1) }} ex.</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-white/40">Main</span>
-                  <span>{{ a.avg_main_count.toFixed(1) }} ex.</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-white/40">Tips</span>
-                  <span>{{ a.avg_tips_count.toFixed(1) }}</span>
-                </div>
-                <div class="border-t border-white/5 pt-1.5 flex justify-between">
-                  <span class="text-white/40">Avg note len</span>
-                  <span>{{ a.avg_notes_present_rate > 0 ? (a.avg_char_count * a.avg_notes_present_rate / Math.max(a.avg_main_count, 1)).toFixed(0) : '—' }} ch</span>
+          <!-- Expandable: detailed breakdown -->
+          <button @click="showDetailedAvgs = !showDetailedAvgs" class="text-[10px] text-white/30 hover:text-white/50 transition-colors">
+            {{ showDetailedAvgs ? '▾ Hide detailed breakdown' : '▸ Detailed breakdown' }}
+          </button>
+          <template v-if="showDetailedAvgs">
+            <div class="flex gap-3 overflow-x-auto pb-1 pt-1">
+              <div
+                v-for="a in compareAvgs" :key="'detail-' + a.provider"
+                class="bg-white/5 rounded-xl p-3 shrink-0 w-44 space-y-1.5"
+              >
+                <p class="text-xs font-semibold capitalize truncate">{{ a.provider }}</p>
+                <div class="space-y-1 text-xs">
+                  <div class="flex justify-between">
+                    <span class="text-white/40">Library match</span>
+                    <span :class="matchColor(a.avg_library_match_rate)">{{ pct(a.avg_library_match_rate) }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-white/40">Est. min</span>
+                    <span>{{ a.avg_estimated_minutes.toFixed(1) }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-white/40">Main ex.</span>
+                    <span>{{ a.avg_main_count.toFixed(1) }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-white/40">Notes %</span>
+                    <span>{{ pct(a.avg_notes_present_rate) }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-white/40">Chars</span>
+                    <span>{{ Math.round(a.avg_char_count).toLocaleString() }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-white/40">Emoji</span>
+                    <span>{{ a.avg_emoji_count.toFixed(1) }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-white/40">Equip. ✗</span>
+                    <span :class="a.avg_equipment_violations > 0 ? 'text-red-400' : 'text-green-400'">{{ a.avg_equipment_violations.toFixed(1) }}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </template>
         </div>
 
         <!-- Narrative analysis -->
@@ -283,7 +357,6 @@
           </div>
           <template v-if="analysis">
             <p class="text-xs text-white/30">Based on {{ analysis.session_count }} sessions</p>
-            <!-- Per-provider verdict chips -->
             <div class="flex gap-2 flex-wrap">
               <div
                 v-for="v in analysis.verdicts" :key="v.provider"
@@ -296,7 +369,6 @@
                 </div>
               </div>
             </div>
-            <!-- Narrative text -->
             <div class="bg-[#1e1e24] rounded-2xl p-4">
               <p class="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">{{ analysis.narrative }}</p>
             </div>
@@ -565,6 +637,10 @@ interface SessionRow {
   tips_count: number
   notes_present_rate: number
   estimated_minutes: number
+  input_tokens: number
+  output_tokens: number
+  cost_usd: number
+  latency_ms: number
   groq_injury_grade?: string
   groq_equipment_grade?: string
   groq_goal_grade?: string
@@ -596,14 +672,38 @@ interface ProviderCompareAvg {
   avg_tips_count: number
   avg_notes_present_rate: number
   avg_estimated_minutes: number
+  avg_input_tokens: number
+  avg_output_tokens: number
+  avg_cost_usd: number
+  avg_latency_ms: number
   avg_groq_injury_score: number
   avg_groq_equipment_score: number
   avg_groq_goal_score: number
 }
 
-const compareAvgs    = ref<ProviderCompareAvg[]>([])
-const compareLoading = ref(false)
-const compareError   = ref('')
+const compareAvgs       = ref<ProviderCompareAvg[]>([])
+const compareLoading    = ref(false)
+const compareError      = ref('')
+const expandedProviders = ref(new Set<string>())
+const showDetailedAvgs  = ref(false)
+
+function toggleExpand(provider: string) {
+  if (expandedProviders.value.has(provider)) {
+    expandedProviders.value.delete(provider)
+  } else {
+    expandedProviders.value.add(provider)
+  }
+  expandedProviders.value = new Set(expandedProviders.value)
+}
+
+function scoreToGrade(score: number): string {
+  if (score === 0) return '—'
+  if (score >= 4.5) return 'A'
+  if (score >= 3.5) return 'B'
+  if (score >= 2.5) return 'C'
+  if (score >= 1.5) return 'D'
+  return 'F'
+}
 
 async function loadCompareStats() {
   compareLoading.value = true

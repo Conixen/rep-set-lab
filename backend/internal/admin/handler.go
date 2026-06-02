@@ -368,6 +368,10 @@ type sessionRow struct {
 	TipsCount           int      `json:"tips_count"`
 	NotesPresentRate    float64  `json:"notes_present_rate"`
 	EstimatedMinutes    float64  `json:"estimated_minutes"`
+	InputTokens         int      `json:"input_tokens"`
+	OutputTokens        int      `json:"output_tokens"`
+	CostUSD             float64  `json:"cost_usd"`
+	LatencyMs           int      `json:"latency_ms"`
 	GroqInjuryGrade     *string  `json:"groq_injury_grade,omitempty"`
 	GroqEquipmentGrade  *string  `json:"groq_equipment_grade,omitempty"`
 	GroqGoalGrade       *string  `json:"groq_goal_grade,omitempty"`
@@ -395,6 +399,10 @@ func toSessionRows(rows []*database.CompareMetric) []sessionRow {
 			TipsCount:           r.TipsCount,
 			NotesPresentRate:    r.NotesPresentRate,
 			EstimatedMinutes:    r.EstimatedMinutes,
+			InputTokens:         r.InputTokens,
+			OutputTokens:        r.OutputTokens,
+			CostUSD:             r.CostUSD,
+			LatencyMs:           r.LatencyMs,
 		}
 		if r.GroqInjuryGrade.Valid {
 			s := r.GroqInjuryGrade.String

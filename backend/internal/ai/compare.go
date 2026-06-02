@@ -201,6 +201,10 @@ func (h *CompareHandler) Compare(c *gin.Context) {
 					AvgNoteLength:       bm.AvgNoteLength,
 					NotesPresentRate:    bm.NotesPresentRate,
 					EstimatedMinutes:    bm.EstimatedMinutes,
+					InputTokens:         usage.InputTokens,
+					OutputTokens:        usage.OutputTokens,
+					CostUSD:             usage.CostUSD,
+					LatencyMs:           int(latencyMs),
 				}
 				if gradeResult != nil {
 					if g := normalizeGrade(gradeResult.InjuryGrade); g != "" {

@@ -31,6 +31,10 @@ type CompareMetric struct {
 	AvgNoteLength       float64        `db:"avg_note_length"`
 	NotesPresentRate    float64        `db:"notes_present_rate"`
 	EstimatedMinutes    float64        `db:"estimated_minutes"`
+	InputTokens         int            `db:"input_tokens"`
+	OutputTokens        int            `db:"output_tokens"`
+	CostUSD             float64        `db:"cost_usd"`
+	LatencyMs           int            `db:"latency_ms"`
 	GroqInjuryGrade     sql.NullString `db:"groq_injury_grade"`
 	GroqEquipmentGrade  sql.NullString `db:"groq_equipment_grade"`
 	GroqGoalGrade       sql.NullString `db:"groq_goal_grade"`
@@ -39,22 +43,26 @@ type CompareMetric struct {
 }
 
 type ProviderCompareAvg struct {
-	Provider              string  `db:"provider"               json:"provider"`
-	TotalSessions         int     `db:"total_sessions"         json:"total_sessions"`
-	AvgLibraryMatchRate   float64 `db:"avg_library_match_rate" json:"avg_library_match_rate"`
-	AvgCharCount          float64 `db:"avg_char_count"         json:"avg_char_count"`
-	AvgEmojiCount         float64 `db:"avg_emoji_count"        json:"avg_emoji_count"`
+	Provider               string  `db:"provider"                 json:"provider"`
+	TotalSessions          int     `db:"total_sessions"           json:"total_sessions"`
+	AvgLibraryMatchRate    float64 `db:"avg_library_match_rate"   json:"avg_library_match_rate"`
+	AvgCharCount           float64 `db:"avg_char_count"           json:"avg_char_count"`
+	AvgEmojiCount          float64 `db:"avg_emoji_count"          json:"avg_emoji_count"`
 	AvgEquipmentViolations float64 `db:"avg_equipment_violations" json:"avg_equipment_violations"`
-	AvgCompletenessScore  float64 `db:"avg_completeness_score" json:"avg_completeness_score"`
-	AvgWarmUpCount        float64 `db:"avg_warm_up_count"      json:"avg_warm_up_count"`
-	AvgMainCount          float64 `db:"avg_main_count"         json:"avg_main_count"`
-	AvgCoolDownCount      float64 `db:"avg_cool_down_count"    json:"avg_cool_down_count"`
-	AvgTipsCount          float64 `db:"avg_tips_count"         json:"avg_tips_count"`
-	AvgNotesPresentRate   float64 `db:"avg_notes_present_rate" json:"avg_notes_present_rate"`
-	AvgEstimatedMinutes   float64 `db:"avg_estimated_minutes"  json:"avg_estimated_minutes"`
-	AvgGroqInjuryScore    float64 `db:"avg_groq_injury_score"  json:"avg_groq_injury_score"`
-	AvgGroqEquipmentScore float64 `db:"avg_groq_equipment_score" json:"avg_groq_equipment_score"`
-	AvgGroqGoalScore      float64 `db:"avg_groq_goal_score"    json:"avg_groq_goal_score"`
+	AvgCompletenessScore   float64 `db:"avg_completeness_score"   json:"avg_completeness_score"`
+	AvgWarmUpCount         float64 `db:"avg_warm_up_count"        json:"avg_warm_up_count"`
+	AvgMainCount           float64 `db:"avg_main_count"           json:"avg_main_count"`
+	AvgCoolDownCount       float64 `db:"avg_cool_down_count"      json:"avg_cool_down_count"`
+	AvgTipsCount           float64 `db:"avg_tips_count"           json:"avg_tips_count"`
+	AvgNotesPresentRate    float64 `db:"avg_notes_present_rate"   json:"avg_notes_present_rate"`
+	AvgEstimatedMinutes    float64 `db:"avg_estimated_minutes"    json:"avg_estimated_minutes"`
+	AvgInputTokens         float64 `db:"avg_input_tokens"         json:"avg_input_tokens"`
+	AvgOutputTokens        float64 `db:"avg_output_tokens"        json:"avg_output_tokens"`
+	AvgCostUSD             float64 `db:"avg_cost_usd"             json:"avg_cost_usd"`
+	AvgLatencyMs           float64 `db:"avg_latency_ms"           json:"avg_latency_ms"`
+	AvgGroqInjuryScore     float64 `db:"avg_groq_injury_score"    json:"avg_groq_injury_score"`
+	AvgGroqEquipmentScore  float64 `db:"avg_groq_equipment_score" json:"avg_groq_equipment_score"`
+	AvgGroqGoalScore       float64 `db:"avg_groq_goal_score"      json:"avg_groq_goal_score"`
 }
 
 type CompareMetricsStore struct {
@@ -73,6 +81,7 @@ func (s *CompareMetricsStore) Log(ctx context.Context, m *CompareMetric) error {
 			char_count, emoji_count, equipment_violations, completeness_score,
 			warm_up_count, main_count, cool_down_count, tips_count,
 			avg_note_length, notes_present_rate, estimated_minutes,
+			input_tokens, output_tokens, cost_usd, latency_ms,
 			groq_injury_grade, groq_equipment_grade, groq_goal_grade, groq_feedback
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7,
@@ -80,13 +89,15 @@ func (s *CompareMetricsStore) Log(ctx context.Context, m *CompareMetric) error {
 			$11, $12, $13, $14,
 			$15, $16, $17, $18,
 			$19, $20, $21,
-			$22, $23, $24, $25
+			$22, $23, $24, $25,
+			$26, $27, $28, $29
 		)`,
 		m.SessionID, m.UserID, m.Provider, m.MuscleGroup, m.DurationMinutes, m.Environment, m.HasInjuries,
 		m.LibraryMatchRate, m.LibraryMatchCount, m.LibraryTotalCount,
 		m.CharCount, m.EmojiCount, m.EquipmentViolations, m.CompletenessScore,
 		m.WarmUpCount, m.MainCount, m.CoolDownCount, m.TipsCount,
 		m.AvgNoteLength, m.NotesPresentRate, m.EstimatedMinutes,
+		m.InputTokens, m.OutputTokens, m.CostUSD, m.LatencyMs,
 		m.GroqInjuryGrade, m.GroqEquipmentGrade, m.GroqGoalGrade, m.GroqFeedback,
 	)
 	return err
@@ -128,6 +139,10 @@ func (s *CompareMetricsStore) ProviderAverages(ctx context.Context) ([]*Provider
 			COALESCE(AVG(tips_count),            0)      AS avg_tips_count,
 			COALESCE(AVG(notes_present_rate),    0)      AS avg_notes_present_rate,
 			COALESCE(AVG(estimated_minutes),     0)      AS avg_estimated_minutes,
+			COALESCE(AVG(input_tokens),          0)      AS avg_input_tokens,
+			COALESCE(AVG(output_tokens),         0)      AS avg_output_tokens,
+			COALESCE(AVG(cost_usd),              0)      AS avg_cost_usd,
+			COALESCE(AVG(latency_ms),            0)      AS avg_latency_ms,
 			COALESCE(AVG(CASE groq_injury_grade
 				WHEN 'A' THEN 5 WHEN 'B' THEN 4 WHEN 'C' THEN 3 WHEN 'D' THEN 2 WHEN 'F' THEN 1
 				ELSE NULL END), 0) AS avg_groq_injury_score,
