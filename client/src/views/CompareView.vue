@@ -252,17 +252,6 @@
                   </div>
                 </div>
               </div>
-              <div v-if="r.response.cool_down?.length">
-                <p class="text-xs text-white/30 uppercase tracking-widest mb-1.5">Cool Down</p>
-                <div class="space-y-1.5">
-                  <div v-for="ex in r.response.cool_down" :key="ex.name" class="bg-white/5 rounded-xl px-3 py-2">
-                    <p class="text-sm font-medium">{{ ex.name }}</p>
-                    <p class="text-xs text-white/40">
-                      <span v-if="ex.duration_seconds">{{ ex.duration_seconds }}s</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
           </template>
         </div>
@@ -336,7 +325,6 @@ interface WorkoutResponse {
   description: string
   warm_up: Exercise[]
   main: Exercise[]
-  cool_down: Exercise[]
   tips: string[]
 }
 
@@ -347,7 +335,6 @@ interface BehavioralMetrics {
   completeness_score: number
   warm_up_count: number
   main_count: number
-  cool_down_count: number
   tips_count: number
   avg_note_length: number
   notes_present_rate: number
@@ -464,7 +451,6 @@ function sectionSummary(b: BehavioralMetrics) {
   const parts = []
   if (b.warm_up_count) parts.push(`${b.warm_up_count}wu`)
   if (b.main_count)    parts.push(`${b.main_count}main`)
-  if (b.cool_down_count) parts.push(`${b.cool_down_count}cd`)
   if (b.tips_count)    parts.push(`${b.tips_count}tips`)
   return parts.join(' · ')
 }

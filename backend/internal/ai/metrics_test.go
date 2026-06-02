@@ -6,13 +6,12 @@ import (
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-func workout(warmUp, main, coolDown []Exercise, tips []string) WorkoutResponse {
+func workout(warmUp, main []Exercise, tips []string) WorkoutResponse {
 	return WorkoutResponse{
 		Title:       "Test Workout",
 		Description: "desc",
 		WarmUp:      warmUp,
 		Main:        main,
-		CoolDown:    coolDown,
 		Tips:        tips,
 	}
 }
@@ -40,7 +39,7 @@ func TestComputeLibraryMatch_AllMatch(t *testing.T) {
 	resp := workout(
 		[]Exercise{ex("Pull-Up", 3, 8, 0, 60, "")},
 		[]Exercise{ex("Barbell Bench Press", 4, 8, 0, 90, "")},
-		nil, nil,
+		nil,
 	)
 	got := computeLibraryMatch(resp, lookup)
 	if got.MatchCount != 2 {
@@ -59,7 +58,7 @@ func TestComputeLibraryMatch_NoMatch(t *testing.T) {
 	resp := workout(
 		nil,
 		[]Exercise{ex("Machine Chest Press", 3, 10, 0, 60, "")},
-		nil, nil,
+		nil,
 	)
 	got := computeLibraryMatch(resp, lookup)
 	if got.MatchCount != 0 {
@@ -82,7 +81,7 @@ func TestComputeLibraryMatch_PartialMatch(t *testing.T) {
 			ex("Handstand Push-Up", 3, 5, 0, 90, ""),
 			ex("Pike Push-Up", 3, 10, 0, 60, ""),
 		},
-		nil, nil,
+		nil,
 	)
 	got := computeLibraryMatch(resp, lookup)
 	if got.MatchCount != 1 {
@@ -107,20 +106,19 @@ func TestBehavioralMetrics_Completeness(t *testing.T) {
 	resp := workout(
 		[]Exercise{ex("Jumping Jacks", 0, 0, 60, 0, "")},
 		[]Exercise{ex("Push-Up", 3, 15, 0, 60, "")},
-		[]Exercise{ex("Stretch", 0, 0, 60, 0, "")},
 		[]string{"Stay hydrated"},
 	)
 	got := computeBehavioralMetrics(resp, "gym")
-	if got.CompletenessScore != 4 {
-		t.Errorf("completeness: got %d, want 4", got.CompletenessScore)
+	if got.CompletenessScore != 3 {
+		t.Errorf("completeness: got %d, want 3", got.CompletenessScore)
 	}
-	if got.WarmUpCount != 1 || got.MainCount != 1 || got.CoolDownCount != 1 || got.TipsCount != 1 {
+	if got.WarmUpCount != 1 || got.MainCount != 1 || got.TipsCount != 1 {
 		t.Errorf("section counts wrong: %+v", got)
 	}
 }
 
 func TestBehavioralMetrics_PartialCompleteness(t *testing.T) {
-	resp := workout(nil, []Exercise{ex("Push-Up", 3, 15, 0, 60, "")}, nil, nil)
+	resp := workout(nil, []Exercise{ex("Push-Up", 3, 15, 0, 60, "")}, nil)
 	got := computeBehavioralMetrics(resp, "gym")
 	if got.CompletenessScore != 1 {
 		t.Errorf("completeness: got %d, want 1 (main only)", got.CompletenessScore)
@@ -147,7 +145,7 @@ func TestBehavioralMetrics_EmojiCount(t *testing.T) {
 }
 
 func TestBehavioralMetrics_NoEmoji(t *testing.T) {
-	resp := workout(nil, []Exercise{ex("Push-Up", 3, 15, 0, 60, "Keep core tight")}, nil, nil)
+	resp := workout(nil, []Exercise{ex("Push-Up", 3, 15, 0, 60, "Keep core tight")}, nil)
 	got := computeBehavioralMetrics(resp, "gym")
 	if got.EmojiCount != 0 {
 		t.Errorf("emoji count: got %d, want 0", got.EmojiCount)
@@ -161,7 +159,7 @@ func TestBehavioralMetrics_EquipmentViolations_Home(t *testing.T) {
 		ex("Barbell Squat", 4, 8, 0, 120, ""),    // violation
 		ex("Push-Up", 3, 15, 0, 60, ""),           // fine
 		ex("Cable Crossover", 3, 12, 0, 60, ""),   // violation
-	}, nil, nil)
+	}, nil)
 	got := computeBehavioralMetrics(resp, "home")
 	if got.EquipmentViolations != 2 {
 		t.Errorf("equipment violations: got %d, want 2", got.EquipmentViolations)
@@ -172,7 +170,7 @@ func TestBehavioralMetrics_EquipmentViolations_Gym(t *testing.T) {
 	resp := workout(nil, []Exercise{
 		ex("Barbell Squat", 4, 8, 0, 120, ""),
 		ex("Cable Crossover", 3, 12, 0, 60, ""),
-	}, nil, nil)
+	}, nil)
 	got := computeBehavioralMetrics(resp, "gym")
 	if got.EquipmentViolations != 0 {
 		t.Errorf("gym environment should have 0 violations, got %d", got.EquipmentViolations)
@@ -184,7 +182,7 @@ func TestBehavioralMetrics_EquipmentViolations_Outdoor(t *testing.T) {
 		ex("Dumbbell Curl", 3, 12, 0, 60, ""), // violation outdoors
 		ex("Push-Up", 3, 15, 0, 60, ""),       // fine
 		ex("Sprint", 5, 0, 30, 30, ""),        // fine
-	}, nil, nil)
+	}, nil)
 	got := computeBehavioralMetrics(resp, "outdoor")
 	if got.EquipmentViolations != 1 {
 		t.Errorf("equipment violations: got %d, want 1", got.EquipmentViolations)
@@ -197,7 +195,7 @@ func TestBehavioralMetrics_NoteMetrics_AllPresent(t *testing.T) {
 	resp := workout(nil, []Exercise{
 		ex("Push-Up", 3, 15, 0, 60, "Keep core tight"),
 		ex("Dip", 3, 10, 0, 60, "Lean forward slightly"),
-	}, nil, nil)
+	}, nil)
 	got := computeBehavioralMetrics(resp, "gym")
 	if got.NotesPresentRate != 1.0 {
 		t.Errorf("notes present rate: got %.2f, want 1.0", got.NotesPresentRate)
@@ -211,7 +209,7 @@ func TestBehavioralMetrics_NoteMetrics_NonePresent(t *testing.T) {
 	resp := workout(nil, []Exercise{
 		ex("Push-Up", 3, 15, 0, 60, ""),
 		ex("Dip", 3, 10, 0, 60, ""),
-	}, nil, nil)
+	}, nil)
 	got := computeBehavioralMetrics(resp, "gym")
 	if got.NotesPresentRate != 0.0 {
 		t.Errorf("notes present rate: got %.2f, want 0.0", got.NotesPresentRate)
@@ -225,7 +223,7 @@ func TestBehavioralMetrics_NoteMetrics_HalfPresent(t *testing.T) {
 	resp := workout(nil, []Exercise{
 		ex("Push-Up", 3, 15, 0, 60, "Keep core tight"),
 		ex("Dip", 3, 10, 0, 60, ""),
-	}, nil, nil)
+	}, nil)
 	got := computeBehavioralMetrics(resp, "gym")
 	if got.NotesPresentRate != 0.5 {
 		t.Errorf("notes present rate: got %.2f, want 0.5", got.NotesPresentRate)

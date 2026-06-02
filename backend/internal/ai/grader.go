@@ -216,10 +216,5 @@ func buildGradePrompt(req WorkoutRequest, resp WorkoutResponse) string {
 		sb.WriteString("\n")
 	}
 
-	sb.WriteString("Cool-down:\n")
-	for _, ex := range resp.CoolDown {
-		fmt.Fprintf(&sb, "  - %s\n", ex.Name)
-	}
-
 	return sb.String()
 }

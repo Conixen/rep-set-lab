@@ -256,10 +256,6 @@
                   <span>{{ a.avg_main_count.toFixed(1) }} ex.</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-white/40">Cool-down</span>
-                  <span>{{ a.avg_cool_down_count.toFixed(1) }} ex.</span>
-                </div>
-                <div class="flex justify-between">
                   <span class="text-white/40">Tips</span>
                   <span>{{ a.avg_tips_count.toFixed(1) }}</span>
                 </div>
@@ -566,7 +562,6 @@ interface SessionRow {
   completeness_score: number
   warm_up_count: number
   main_count: number
-  cool_down_count: number
   tips_count: number
   notes_present_rate: number
   estimated_minutes: number
@@ -598,7 +593,6 @@ interface ProviderCompareAvg {
   avg_completeness_score: number
   avg_warm_up_count: number
   avg_main_count: number
-  avg_cool_down_count: number
   avg_tips_count: number
   avg_notes_present_rate: number
   avg_estimated_minutes: number

@@ -197,7 +197,6 @@ func (h *CompareHandler) Compare(c *gin.Context) {
 					CompletenessScore:   bm.CompletenessScore,
 					WarmUpCount:         bm.WarmUpCount,
 					MainCount:           bm.MainCount,
-					CoolDownCount:       bm.CoolDownCount,
 					TipsCount:           bm.TipsCount,
 					AvgNoteLength:       bm.AvgNoteLength,
 					NotesPresentRate:    bm.NotesPresentRate,

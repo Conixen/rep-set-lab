@@ -40,7 +40,6 @@ type WorkoutResponse struct {
 	Description string     `json:"description"`
 	WarmUp      []Exercise `json:"warm_up"`
 	Main        []Exercise `json:"main"`
-	CoolDown    []Exercise `json:"cool_down"`
 	Tips        []string   `json:"tips"`
 }
 
@@ -59,7 +58,7 @@ type Provider interface {
 // natural differences in verbosity, emoji use, injury handling, and equipment awareness.
 const compareSystemPrompt = `You are a personal trainer. Generate a workout plan for the user.
 
-Return only valid JSON with these fields: title (string), description (string), warm_up (array of exercises), main (array of exercises), cool_down (array of exercises), tips (array of strings).
+Return only valid JSON with these fields: title (string), description (string), warm_up (array of exercises), main (array of exercises), tips (array of strings).
 
 Each exercise object contains: name (string), sets (integer), reps (integer), duration_seconds (integer), rest_seconds (integer), notes (string).`
 
@@ -71,7 +70,6 @@ Always respond with valid JSON matching this exact structure:
   "description": "string",
   "warm_up": [{"name":"string","sets":0,"reps":0,"duration_seconds":0,"rest_seconds":0,"notes":"string"}],
   "main":    [{"name":"string","sets":0,"reps":0,"duration_seconds":0,"rest_seconds":0,"notes":"string"}],
-  "cool_down":[{"name":"string","duration_seconds":0,"notes":"string"}],
   "tips": ["string"]
 }
 
@@ -103,7 +101,6 @@ type BehavioralMetrics struct {
 	CompletenessScore   int     `json:"completeness_score"`
 	WarmUpCount         int     `json:"warm_up_count"`
 	MainCount           int     `json:"main_count"`
-	CoolDownCount       int     `json:"cool_down_count"`
 	TipsCount           int     `json:"tips_count"`
 	AvgNoteLength       float64 `json:"avg_note_length"`
 	NotesPresentRate    float64 `json:"notes_present_rate"`
@@ -128,10 +125,9 @@ func computeBehavioralMetrics(resp WorkoutResponse, environment string) Behavior
 	text := collectAllText(resp)
 
 	completeness := 0
-	if len(resp.WarmUp) > 0   { completeness++ }
-	if len(resp.Main) > 0     { completeness++ }
-	if len(resp.CoolDown) > 0 { completeness++ }
-	if len(resp.Tips) > 0     { completeness++ }
+	if len(resp.WarmUp) > 0 { completeness++ }
+	if len(resp.Main) > 0   { completeness++ }
+	if len(resp.Tips) > 0   { completeness++ }
 
 	avgNoteLen, notesPresentRate := computeNoteMetrics(all)
 
@@ -142,7 +138,6 @@ func computeBehavioralMetrics(resp WorkoutResponse, environment string) Behavior
 		CompletenessScore:   completeness,
 		WarmUpCount:         len(resp.WarmUp),
 		MainCount:           len(resp.Main),
-		CoolDownCount:       len(resp.CoolDown),
 		TipsCount:           len(resp.Tips),
 		AvgNoteLength:       avgNoteLen,
 		NotesPresentRate:    notesPresentRate,
@@ -170,10 +165,9 @@ func computeLibraryMatch(resp WorkoutResponse, lookup map[string]bool) LibraryMa
 }
 
 func collectExercises(resp WorkoutResponse) []Exercise {
-	out := make([]Exercise, 0, len(resp.WarmUp)+len(resp.Main)+len(resp.CoolDown))
+	out := make([]Exercise, 0, len(resp.WarmUp)+len(resp.Main))
 	out = append(out, resp.WarmUp...)
 	out = append(out, resp.Main...)
-	out = append(out, resp.CoolDown...)
 	return out
 }
 

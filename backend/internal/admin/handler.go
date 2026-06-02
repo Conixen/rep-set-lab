@@ -365,7 +365,6 @@ type sessionRow struct {
 	CompletenessScore   int      `json:"completeness_score"`
 	WarmUpCount         int      `json:"warm_up_count"`
 	MainCount           int      `json:"main_count"`
-	CoolDownCount       int      `json:"cool_down_count"`
 	TipsCount           int      `json:"tips_count"`
 	NotesPresentRate    float64  `json:"notes_present_rate"`
 	EstimatedMinutes    float64  `json:"estimated_minutes"`
@@ -393,7 +392,6 @@ func toSessionRows(rows []*database.CompareMetric) []sessionRow {
 			CompletenessScore:   r.CompletenessScore,
 			WarmUpCount:         r.WarmUpCount,
 			MainCount:           r.MainCount,
-			CoolDownCount:       r.CoolDownCount,
 			TipsCount:           r.TipsCount,
 			NotesPresentRate:    r.NotesPresentRate,
 			EstimatedMinutes:    r.EstimatedMinutes,

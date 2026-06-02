@@ -199,23 +199,6 @@
           </div>
         </section>
 
-        <section v-if="result.response.cool_down?.length">
-          <p class="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">Cool Down</p>
-          <div class="space-y-2">
-            <div v-for="ex in result.response.cool_down" :key="ex.name" class="bg-white/5 rounded-xl p-3">
-              <button v-if="exerciseGifMap[ex.name]" @click="openPopup(ex.name)"
-                class="font-medium text-sm text-violet-400 text-left w-full">
-                {{ ex.name }} <span class="text-violet-500/60 text-xs">▶</span>
-              </button>
-              <p v-else class="font-medium text-sm">{{ ex.name }}</p>
-              <p class="text-xs text-white/40 mt-0.5">
-                <span v-if="ex.duration_seconds">{{ ex.duration_seconds }}s</span>
-              </p>
-              <p v-if="ex.notes" class="text-xs text-white/30 mt-1">{{ ex.notes }}</p>
-            </div>
-          </div>
-        </section>
-
         <section v-if="result.response.tips?.length">
           <p class="text-xs font-semibold text-white/40 uppercase tracking-widest mb-2">Tips</p>
           <ul class="space-y-1">
@@ -295,7 +278,6 @@ interface WorkoutResponse {
   description: string
   warm_up: Exercise[]
   main: Exercise[]
-  cool_down: Exercise[]
   tips: string[]
 }
 
@@ -382,7 +364,6 @@ const exerciseGifMap = computed<Record<string, string>>(() => {
   const allNames = [
     ...result.value.response.warm_up.map(e => e.name),
     ...result.value.response.main.map(e => e.name),
-    ...result.value.response.cool_down.map(e => e.name),
   ]
 
   const map: Record<string, string> = {}
