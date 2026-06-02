@@ -1,15 +1,17 @@
 package database
 
 import (
+	"embed"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
+
+//go:embed migrations/*.sql
+var migrationFS embed.FS
 
 func Connect(dsn string) (*sqlx.DB, error) {
 	db, err := sqlx.Connect("postgres", dsn)
@@ -21,29 +23,29 @@ func Connect(dsn string) (*sqlx.DB, error) {
 	return db, nil
 }
 
-// Migrate runs all SQL files in the given directory in lexicographic order.
+// Migrate runs all embedded SQL files in lexicographic order.
 // Each file is idempotent by convention (IF NOT EXISTS guards).
-func Migrate(db *sqlx.DB, dir string) error {
-	entries, err := os.ReadDir(dir)
+func Migrate(db *sqlx.DB) error {
+	entries, err := migrationFS.ReadDir("migrations")
 	if err != nil {
-		return fmt.Errorf("read migrations dir: %w", err)
+		return fmt.Errorf("read migrations: %w", err)
 	}
 
-	var files []string
+	var names []string
 	for _, e := range entries {
 		if !e.IsDir() && strings.HasSuffix(e.Name(), ".sql") {
-			files = append(files, filepath.Join(dir, e.Name()))
+			names = append(names, e.Name())
 		}
 	}
-	sort.Strings(files)
+	sort.Strings(names)
 
-	for _, f := range files {
-		sql, err := os.ReadFile(f)
+	for _, name := range names {
+		sql, err := migrationFS.ReadFile("migrations/" + name)
 		if err != nil {
-			return fmt.Errorf("read migration %s: %w", f, err)
+			return fmt.Errorf("read migration %s: %w", name, err)
 		}
 		if _, err := db.Exec(string(sql)); err != nil {
-			return fmt.Errorf("run migration %s: %w", f, err)
+			return fmt.Errorf("run migration %s: %w", name, err)
 		}
 	}
 	return nil

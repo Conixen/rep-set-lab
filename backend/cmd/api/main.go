@@ -45,7 +45,7 @@ func main() {
 	}
 	defer db.Close()
 
-	if err := database.Migrate(db, "migrations"); err != nil {
+	if err := database.Migrate(db); err != nil {
 		logger.Error("run migrations", "error", err)
 		os.Exit(1)
 	}
@@ -125,8 +125,8 @@ func main() {
 	}))
 
 	v1 := r.Group("/api/v1")
-	v1.POST("/auth/register",                authHandler.Register)
-	v1.POST("/auth/login",                   authHandler.Login)
+	v1.POST("/auth/register",                auth.AuthRateLimit(), authHandler.Register)
+	v1.POST("/auth/login",                   auth.AuthRateLimit(), authHandler.Login)
 	v1.GET("/exercises/image/:exerciseid",   exerciseHandler.ProxyImage) // public — img tags can't send Bearer
 
 	protected := v1.Group("", auth.Middleware(cfg.JWTSecret))
