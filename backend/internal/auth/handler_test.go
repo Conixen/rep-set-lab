@@ -5,12 +5,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/leonj/rep-set-lab/internal/auth"
@@ -25,7 +25,7 @@ type stubAuthStore struct {
 
 func (s *stubAuthStore) Create(_ context.Context, email, username, passwordHash string) (*database.User, error) {
 	if s.failCreate {
-		return nil, errors.New("unique constraint violated")
+		return nil, &pq.Error{Code: "23505", Message: "unique constraint violated"}
 	}
 	s.nextID++
 	u := &database.User{

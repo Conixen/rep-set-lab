@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/leonj/rep-set-lab/internal/database"
@@ -73,7 +74,11 @@ func (h *Handler) Register(c *gin.Context) {
 
 	user, err := h.users.Create(c.Request.Context(), req.Email, req.Username, string(hash))
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "email or username already taken"})
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
+			c.JSON(http.StatusConflict, gin.H{"error": "email or username already taken"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create account"})
+		}
 		return
 	}
 
