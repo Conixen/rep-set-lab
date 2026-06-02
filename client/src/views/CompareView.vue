@@ -86,6 +86,22 @@
           />
         </div>
 
+        <div class="flex items-center gap-2">
+          <p class="text-sm text-white/60">Workout language</p>
+          <div class="flex gap-1 ml-auto">
+            <button
+              @click="language = 'en'"
+              :class="language === 'en' ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+              class="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+            >EN</button>
+            <button
+              @click="language = 'sv'"
+              :class="language === 'sv' ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+              class="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+            >SV</button>
+          </div>
+        </div>
+
         <div class="space-y-2">
           <p class="text-sm text-white/60">Custom prompt <span class="text-white/30">(optional)</span></p>
           <textarea
@@ -359,7 +375,7 @@ const environments = [
   { key: 'home',    label: 'Home' },
   { key: 'outdoor', label: 'Outdoor' },
 ]
-const muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core']
+const muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Calves', 'Wrists']
 const durations    = [30, 45, 60, 90]
 const levels       = ['Beginner', 'Intermediate', 'Advanced']
 const goals        = ['Muscle gain', 'Fat loss', 'Strength', 'Endurance']
@@ -380,6 +396,7 @@ const goal                 = ref('Muscle gain')
 const injuries             = ref('')
 const prompt               = ref('')
 const environment          = ref('gym')
+const language             = ref('en')
 
 const effectiveDuration = computed(() => {
   const custom = parseInt(customDuration.value)
@@ -463,6 +480,7 @@ async function compare() {
       injuries:         injuries.value,
       prompt:           prompt.value,
       environment:      environment.value,
+      language:         language.value,
     })
     results.value = data.results.sort((a, b) => a.latency_ms - b.latency_ms)
   } catch (e: unknown) {

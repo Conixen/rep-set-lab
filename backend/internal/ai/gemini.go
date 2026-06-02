@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
@@ -47,14 +46,8 @@ func (p *GeminiProvider) GenerateWorkout(ctx context.Context, req WorkoutRequest
 	}
 
 	raw := fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0])
-	// Strip markdown code fences if the model wraps output despite instructions.
-	raw = strings.TrimPrefix(raw, "```json")
-	raw = strings.TrimPrefix(raw, "```")
-	raw = strings.TrimSuffix(raw, "```")
-	raw = strings.TrimSpace(raw)
-
 	var response WorkoutResponse
-	if err := json.Unmarshal([]byte(raw), &response); err != nil {
+	if err := json.Unmarshal([]byte(cleanJSON(raw)), &response); err != nil {
 		return WorkoutResponse{}, Usage{}, fmt.Errorf("gemini: parse JSON: %w", err)
 	}
 

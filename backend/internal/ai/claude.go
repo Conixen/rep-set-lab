@@ -28,7 +28,7 @@ func (p *ClaudeProvider) Name() string { return "claude" }
 func (p *ClaudeProvider) GenerateWorkout(ctx context.Context, req WorkoutRequest) (WorkoutResponse, Usage, error) {
 	msg, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
 		Model:     anthropic.Model(claudeModel),
-		MaxTokens: 2048,
+		MaxTokens: 4096,
 		System: []anthropic.TextBlockParam{
 			{Text: effectiveSystemPrompt(req)},
 		},
@@ -45,7 +45,7 @@ func (p *ClaudeProvider) GenerateWorkout(ctx context.Context, req WorkoutRequest
 	}
 
 	var response WorkoutResponse
-	if err := json.Unmarshal([]byte(msg.Content[0].Text), &response); err != nil {
+	if err := json.Unmarshal([]byte(cleanJSON(msg.Content[0].Text)), &response); err != nil {
 		return WorkoutResponse{}, Usage{}, fmt.Errorf("claude: parse JSON: %w", err)
 	}
 

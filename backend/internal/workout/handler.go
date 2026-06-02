@@ -32,6 +32,7 @@ type generateRequest struct {
 	Goals           string `json:"goals"`
 	AIProvider      string `json:"ai_provider"`
 	Environment     string `json:"environment"` // optional; omitting defaults to "gym" in the AI layer
+	Language        string `json:"language"`    // optional; "sv" = Swedish output, default English
 }
 
 func (h *Handler) Generate(c *gin.Context) {
@@ -65,6 +66,7 @@ func (h *Handler) Generate(c *gin.Context) {
 		Goals:           req.Goals,
 		AIProvider:      req.AIProvider,
 		Environment:     req.Environment,
+		Language:        req.Language,
 	})
 	if err != nil {
 		if errors.Is(err, ErrUnknownProvider) {

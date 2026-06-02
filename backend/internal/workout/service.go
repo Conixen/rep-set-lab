@@ -78,6 +78,7 @@ type GenerateRequest struct {
 	Goals           string
 	AIProvider      string
 	Environment     string // Environment is where the user is training: "gym" (default), "home", or "outdoor".
+	Language        string // "sv" for Swedish output; exercise names always stay in English.
 }
 
 type GenerateResult struct {
@@ -99,6 +100,7 @@ func (s *Service) Generate(ctx context.Context, userID int64, req GenerateReques
 		Injuries:        req.Injuries,
 		Goals:           req.Goals,
 		Environment:     req.Environment,
+		Language:        req.Language,
 	}
 
 	if s.exercises != nil {

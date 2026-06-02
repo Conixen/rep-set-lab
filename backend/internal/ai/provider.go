@@ -13,6 +13,7 @@ type WorkoutRequest struct {
 	Injuries             string
 	Goals                string
 	Environment          string
+	Language             string   // "sv" = Swedish output; exercise names always stay in English
 	AvailableExercises   []string // exercise names from our library; AI prefers these for GIF previews
 	SystemPromptOverride string   // if set, replaces systemPrompt (used by compare to expose natural model behavior)
 }
@@ -262,6 +263,44 @@ func estimateMinutes(main []Exercise) float64 {
 	return float64(total) / 60.0
 }
 
+// cleanJSON strips markdown fences, extracts the first {...} block, and
+// escapes literal newlines inside JSON string values so json.Unmarshal accepts it.
+func cleanJSON(raw string) string {
+	raw = strings.TrimPrefix(raw, "```json")
+	raw = strings.TrimPrefix(raw, "```")
+	raw = strings.TrimSuffix(raw, "```")
+	raw = strings.TrimSpace(raw)
+
+	if start := strings.Index(raw, "{"); start != -1 {
+		if end := strings.LastIndex(raw, "}"); end > start {
+			raw = raw[start : end+1]
+		}
+	}
+
+	var b strings.Builder
+	inString, escaped := false, false
+	for _, r := range raw {
+		switch {
+		case escaped:
+			b.WriteRune(r)
+			escaped = false
+		case r == '\\' && inString:
+			b.WriteRune(r)
+			escaped = true
+		case r == '"':
+			inString = !inString
+			b.WriteRune(r)
+		case inString && r == '\n':
+			b.WriteString(`\n`)
+		case inString && r == '\r':
+			b.WriteString(`\r`)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
 // ── Prompt builders ───────────────────────────────────────────────────────────
 
 func buildUserPrompt(req WorkoutRequest) string {
@@ -281,6 +320,9 @@ func buildUserPrompt(req WorkoutRequest) string {
 		for _, name := range req.AvailableExercises {
 			prompt += "- " + name + "\n"
 		}
+	}
+	if req.Language == "sv" {
+		prompt += "\nIMPORTANT: Write the title, description, exercise notes, and tips in Swedish. Keep all exercise names in English.\n"
 	}
 	return prompt
 }

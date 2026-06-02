@@ -72,6 +72,7 @@ type compareRequest struct {
 	Goals           string `json:"goals"`
 	Prompt          string `json:"prompt"`
 	Environment     string `json:"environment"`
+	Language        string `json:"language"` // optional; "sv" = Swedish output, default English
 }
 
 func (h *CompareHandler) Compare(c *gin.Context) {
@@ -107,6 +108,7 @@ func (h *CompareHandler) Compare(c *gin.Context) {
 		Injuries:             req.Injuries,
 		Goals:                req.Goals,
 		Environment:          req.Environment,
+		Language:             req.Language,
 		SystemPromptOverride: compareSystemPrompt,
 		// AvailableExercises intentionally omitted — library match scoring measures
 		// how well models pick known exercises without being told what they are.

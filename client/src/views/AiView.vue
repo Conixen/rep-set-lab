@@ -93,6 +93,22 @@
           />
         </div>
 
+        <div class="flex items-center gap-2">
+          <p class="text-sm text-white/60">Workout language</p>
+          <div class="flex gap-1 ml-auto">
+            <button
+              @click="language = 'en'"
+              :class="language === 'en' ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+              class="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+            >EN</button>
+            <button
+              @click="language = 'sv'"
+              :class="language === 'sv' ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+              class="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+            >SV</button>
+          </div>
+        </div>
+
         <div class="space-y-2">
           <div class="flex items-center gap-2">
             <p class="text-sm text-white/60">Extra notes <span class="text-white/30">(optional)</span></p>
@@ -307,7 +323,7 @@ const environments = [
   { key: 'home',    label: '🏠 Home' },
   { key: 'outdoor', label: '🌳 Outdoor' },
 ]
-const muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Lower Legs', 'Lower Arms']
+const muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Calves', 'Wrists']
 const durations    = [30, 45, 60, 90]
 const levels       = ['Beginner', 'Intermediate', 'Advanced']
 const goals        = ['Muscle gain', 'Fat loss', 'Strength', 'Endurance']
@@ -321,6 +337,7 @@ const goal                 = ref('Muscle gain')
 const injuries             = ref('')
 const prompt               = ref('')
 const environment          = ref('gym')
+const language             = ref('en')
 const showPromptTip        = ref(false)
 
 const effectiveDuration = computed(() => {
@@ -394,6 +411,7 @@ async function generate() {
       injuries:         injuries.value,
       prompt:           prompt.value,
       environment:      environment.value,
+      language:         language.value,
     })
   } catch (e: unknown) {
     error.value = toMessage(e, 'Failed to generate workout')

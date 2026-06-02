@@ -43,7 +43,7 @@ func (p *OpenAIProvider) GenerateWorkout(ctx context.Context, req WorkoutRequest
 	}
 
 	var response WorkoutResponse
-	if err := json.Unmarshal([]byte(completion.Choices[0].Message.Content), &response); err != nil {
+	if err := json.Unmarshal([]byte(cleanJSON(completion.Choices[0].Message.Content)), &response); err != nil {
 		return WorkoutResponse{}, Usage{}, fmt.Errorf("openai: parse JSON: %w", err)
 	}
 
