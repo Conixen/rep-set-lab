@@ -1,3 +1,6 @@
+-- DEPRECATED: workouts store their AI response as JSON in the ai_response column.
+-- This table was never populated and has no corresponding Go code. Kept to avoid
+-- dropping it from existing databases — remove only when spinning up fresh instances.
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'workout_exercises') THEN

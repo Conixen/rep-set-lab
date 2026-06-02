@@ -50,13 +50,6 @@ func (s *UserStore) GetByID(ctx context.Context, id int64) (*User, error) {
 	return &u, err
 }
 
-func (s *UserStore) AddXP(ctx context.Context, userID, xpAmount int64, newLevel int) error {
-	_, err := s.db.ExecContext(ctx, `
-		UPDATE users SET xp = xp + $1, level = $2, updated_at = NOW() WHERE id = $3
-	`, xpAmount, newLevel, userID)
-	return err
-}
-
 func (s *UserStore) GetTokenVersion(ctx context.Context, id int64) (int, error) {
 	var v int
 	err := s.db.QueryRowxContext(ctx, `SELECT token_version FROM users WHERE id = $1`, id).Scan(&v)
