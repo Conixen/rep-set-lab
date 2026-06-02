@@ -225,6 +225,10 @@
           class="flex-1 bg-white/10 hover:bg-white/15 text-white font-semibold py-3 rounded-2xl text-sm transition-colors"
         >New Workout</button>
         <button
+          @click="showModal = true"
+          class="flex-1 bg-white/10 hover:bg-white/15 text-white font-semibold py-3 rounded-2xl text-sm transition-colors"
+        >View full ▶</button>
+        <button
           v-if="!xpResult"
           @click="complete"
           :disabled="completing"
@@ -233,6 +237,22 @@
       </div>
     </template>
   </div>
+
+  <!-- Full workout modal -->
+  <WorkoutModal
+    v-if="showModal && result"
+    :workout="result.response"
+    :workout-id="result.workout.id"
+    :provider="result.usage.provider"
+    :duration-minutes="effectiveDuration"
+    :muscle-group="selectedMuscleGroups.join(', ')"
+    :injuries="injuries"
+    :goals="`${goal} · ${experience}`"
+    :environment="environment"
+    @close="showModal = false"
+    @completed="onModalCompleted"
+    @deleted="onModalDeleted"
+  />
 
   <!-- Exercise GIF popup — tap exercise name to open, tap backdrop or ✕ to close -->
   <Teleport to="body">
@@ -263,6 +283,7 @@ import { ref, computed, onMounted } from 'vue'
 import { api } from '../api/client'
 import { findLibraryMatch, type LibraryExercise } from '../utils/exerciseMatch'
 import { toMessage } from '../utils/error'
+import WorkoutModal from '../components/WorkoutModal.vue'
 
 interface Exercise {
   name: string
@@ -346,6 +367,7 @@ const completing = ref(false)
 const error      = ref('')
 const result     = ref<GenerateResult | null>(null)
 const xpResult   = ref<XPResult | null>(null)
+const showModal  = ref(false)
 
 // Exercise library — loaded once on mount, used for GIF popup matching
 const libraryExercises = ref<LibraryExercise[]>([])
@@ -414,10 +436,21 @@ async function complete() {
   }
 }
 
+function onModalCompleted(r: XPResult) {
+  xpResult.value = r
+  showModal.value = false
+}
+
+function onModalDeleted() {
+  showModal.value = false
+  reset()
+}
+
 function reset() {
-  result.value       = null
-  xpResult.value     = null
-  error.value        = ''
+  result.value        = null
+  xpResult.value      = null
+  error.value         = ''
+  showModal.value     = false
   showPromptTip.value = false
 }
 </script>

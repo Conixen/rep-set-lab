@@ -11,6 +11,7 @@ type WorkoutStorage struct {
 	CreateFunc             func(ctx context.Context, w *database.Workout) (*database.Workout, error)
 	GetByIDFunc            func(ctx context.Context, id, userID int64) (*database.Workout, error)
 	ListByUserFunc         func(ctx context.Context, userID int64) ([]*database.Workout, error)
+	DeleteFunc             func(ctx context.Context, id, userID int64) error
 	CompleteAndAwardXPFunc func(ctx context.Context, workoutID, userID, xpAmount int64, newLevel int) error
 }
 
@@ -34,6 +35,13 @@ func (m *WorkoutStorage) ListByUser(ctx context.Context, userID int64) ([]*datab
 		return m.ListByUserFunc(ctx, userID)
 	}
 	return nil, nil
+}
+
+func (m *WorkoutStorage) Delete(ctx context.Context, id, userID int64) error {
+	if m.DeleteFunc != nil {
+		return m.DeleteFunc(ctx, id, userID)
+	}
+	return nil
 }
 
 func (m *WorkoutStorage) CompleteAndAwardXP(ctx context.Context, workoutID, userID, xpAmount int64, newLevel int) error {

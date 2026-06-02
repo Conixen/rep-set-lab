@@ -69,6 +69,21 @@ func (s *WorkoutStore) GetByIDAdmin(ctx context.Context, id int64) (*Workout, er
 	return &w, err
 }
 
+func (s *WorkoutStore) Delete(ctx context.Context, id, userID int64) error {
+	result, err := s.db.ExecContext(ctx, `DELETE FROM workouts WHERE id = $1 AND user_id = $2`, id, userID)
+	if err != nil {
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
 func (s *WorkoutStore) AdminSetCompleted(ctx context.Context, id int64, completed bool) error {
 	var result sql.Result
 	var err error

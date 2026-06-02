@@ -2,6 +2,8 @@ package workout
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -113,6 +115,76 @@ func (h *Handler) Get(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"workout": workout})
+}
+
+type saveFromCompareRequest struct {
+	Prompt          string          `json:"prompt"`
+	MuscleGroup     string          `json:"muscle_group"`
+	DurationMinutes int             `json:"duration_minutes"`
+	AIProvider      string          `json:"ai_provider"`
+	Environment     string          `json:"environment"`
+	Injuries        string          `json:"injuries"`
+	Goals           string          `json:"goals"`
+	Response        json.RawMessage `json:"response"`
+}
+
+func (h *Handler) SaveFromCompare(c *gin.Context) {
+	var req saveFromCompareRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := validate.RequiredString("muscle_group", req.MuscleGroup); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := validate.PositiveInt("duration_minutes", req.DurationMinutes); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := validate.RequiredString("ai_provider", req.AIProvider); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if len(req.Response) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "field 'response' is required"})
+		return
+	}
+
+	claims := auth.GetClaims(c)
+	workout, err := h.service.SaveFromCompare(c.Request.Context(), claims.UserID, SaveFromCompareRequest{
+		Prompt:          req.Prompt,
+		MuscleGroup:     req.MuscleGroup,
+		DurationMinutes: req.DurationMinutes,
+		AIProvider:      req.AIProvider,
+		Environment:     req.Environment,
+		Injuries:        req.Injuries,
+		Goals:           req.Goals,
+		ResponseJSON:    req.Response,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save workout"})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"workout": workout})
+}
+
+func (h *Handler) Delete(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workout id"})
+		return
+	}
+	claims := auth.GetClaims(c)
+	if err := h.service.Delete(c.Request.Context(), id, claims.UserID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "workout not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete workout"})
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 func (h *Handler) Complete(c *gin.Context) {

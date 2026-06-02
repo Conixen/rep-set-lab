@@ -30,6 +30,7 @@ type Storage interface {
 	Create(ctx context.Context, w *database.Workout) (*database.Workout, error)
 	GetByID(ctx context.Context, id, userID int64) (*database.Workout, error)
 	ListByUser(ctx context.Context, userID int64) ([]*database.Workout, error)
+	Delete(ctx context.Context, id, userID int64) error
 	// CompleteAndAwardXP runs both the workout completion and the XP update in one
 	// transaction — never call them separately.
 	CompleteAndAwardXP(ctx context.Context, workoutID, userID, xpAmount int64, newLevel int) error
@@ -162,6 +163,36 @@ func (s *Service) Generate(ctx context.Context, userID int64, req GenerateReques
 		return nil, fmt.Errorf("save workout: %w", err)
 	}
 	return &GenerateResult{Workout: saved, Response: response, Usage: usage}, nil
+}
+
+type SaveFromCompareRequest struct {
+	Prompt          string
+	MuscleGroup     string
+	DurationMinutes int
+	AIProvider      string
+	Environment     string
+	Injuries        string
+	Goals           string
+	ResponseJSON    json.RawMessage
+}
+
+func (s *Service) SaveFromCompare(ctx context.Context, userID int64, req SaveFromCompareRequest) (*database.Workout, error) {
+	w := &database.Workout{
+		UserID:          userID,
+		Prompt:          req.Prompt,
+		MuscleGroup:     req.MuscleGroup,
+		DurationMinutes: req.DurationMinutes,
+		AIProvider:      req.AIProvider,
+		Injuries:        sql.NullString{String: req.Injuries, Valid: req.Injuries != ""},
+		Goals:           sql.NullString{String: req.Goals, Valid: req.Goals != ""},
+		AIResponse:      req.ResponseJSON,
+		XPEarned:        int(xp.Earned(req.DurationMinutes)),
+	}
+	return s.workouts.Create(ctx, w)
+}
+
+func (s *Service) Delete(ctx context.Context, workoutID, userID int64) error {
+	return s.workouts.Delete(ctx, workoutID, userID)
 }
 
 type CompleteResult struct {

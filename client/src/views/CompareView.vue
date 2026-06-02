@@ -217,41 +217,15 @@
               <p class="text-xs text-white/40 mt-0.5 line-clamp-2">{{ r.response.description }}</p>
             </div>
 
-            <button
-              @click="toggleExpand(r.provider)"
-              class="text-xs text-violet-400 hover:text-violet-300 transition-colors"
-            >
-              {{ expanded.has(r.provider) ? 'Hide exercises ▲' : 'Show exercises ▼' }}
-            </button>
-
-            <div v-if="expanded.has(r.provider)" class="space-y-3">
-              <div v-if="r.response.warm_up?.length">
-                <p class="text-xs text-white/30 uppercase tracking-widest mb-1.5">Warm Up</p>
-                <div class="space-y-1.5">
-                  <div v-for="ex in r.response.warm_up" :key="ex.name" class="bg-white/5 rounded-xl px-3 py-2">
-                    <p class="text-sm font-medium">{{ ex.name }}</p>
-                    <p class="text-xs text-white/40">
-                      <span v-if="ex.sets && ex.reps">{{ ex.sets }}×{{ ex.reps }}</span>
-                      <span v-else-if="ex.duration_seconds">{{ ex.duration_seconds }}s</span>
-                      <span v-if="ex.rest_seconds"> · {{ ex.rest_seconds }}s rest</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div v-if="r.response.main?.length">
-                <p class="text-xs text-white/30 uppercase tracking-widest mb-1.5">Main</p>
-                <div class="space-y-1.5">
-                  <div v-for="ex in r.response.main" :key="ex.name" class="bg-white/5 rounded-xl px-3 py-2">
-                    <p class="text-sm font-medium">{{ ex.name }}</p>
-                    <p class="text-xs text-white/40">
-                      <span v-if="ex.sets && ex.reps">{{ ex.sets }}×{{ ex.reps }}</span>
-                      <span v-else-if="ex.duration_seconds">{{ ex.duration_seconds }}s</span>
-                      <span v-if="ex.rest_seconds"> · {{ ex.rest_seconds }}s rest</span>
-                    </p>
-                    <p v-if="ex.notes" class="text-xs text-white/30 mt-0.5">{{ ex.notes }}</p>
-                  </div>
-                </div>
-              </div>
+            <div class="flex items-center gap-2">
+              <button
+                @click="modalResult = r"
+                class="flex-1 text-xs bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 py-2 rounded-xl transition-colors font-medium"
+              >View workout ▶</button>
+              <span
+                v-if="savedProviders.has(r.provider)"
+                class="text-xs bg-green-500/10 text-green-400 px-3 py-2 rounded-xl font-medium"
+              >Saved ✓</span>
             </div>
           </template>
         </div>
@@ -304,12 +278,28 @@
       >New comparison</button>
     </template>
   </div>
+
+  <!-- Workout modal (from compare result) -->
+  <WorkoutModal
+    v-if="modalResult?.response"
+    :workout="modalResult.response"
+    :provider="modalResult.provider"
+    :duration-minutes="effectiveDuration"
+    :muscle-group="selectedMuscleGroups.join(', ')"
+    :injuries="injuries"
+    :goals="`${goal} · ${experience}`"
+    :environment="environment"
+    :prompt="prompt"
+    @close="modalResult = null"
+    @saved="savedProviders.value.add(modalResult!.provider); savedProviders.value = new Set(savedProviders.value)"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { api } from '../api/client'
 import { toMessage } from '../utils/error'
+import WorkoutModal from '../components/WorkoutModal.vue'
 
 interface Exercise {
   name: string
@@ -401,10 +391,12 @@ function setDuration(d: number) {
   customDuration.value = ''
 }
 
-const loading  = ref(false)
-const error    = ref('')
-const results  = ref<ProviderResult[] | null>(null)
-const expanded = ref<Set<string>>(new Set())
+const loading       = ref(false)
+const error         = ref('')
+const results       = ref<ProviderResult[] | null>(null)
+const expanded      = ref<Set<string>>(new Set())
+const savedProviders = ref<Set<string>>(new Set())
+const modalResult   = ref<ProviderResult | null>(null)
 
 const successResults = computed(() =>
   (results.value ?? []).filter(r => !r.error && r.usage)
@@ -477,8 +469,10 @@ async function compare() {
 }
 
 function reset() {
-  results.value = null
-  expanded.value = new Set()
-  error.value = ''
+  results.value    = null
+  expanded.value   = new Set()
+  savedProviders.value = new Set()
+  modalResult.value = null
+  error.value      = ''
 }
 </script>

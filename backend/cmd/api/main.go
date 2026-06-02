@@ -137,12 +137,14 @@ func main() {
 		// Active-only routes — pending users are blocked with 403.
 		active := protected.Group("", auth.ActiveMiddleware(userStore))
 		{
-			active.GET("/users/me/stats",          userHandler.Stats)
-			active.POST("/workouts/generate",      workoutHandler.Generate)
-			active.GET("/workouts",                workoutHandler.List)
-			active.GET("/workouts/:id",            workoutHandler.Get)
-			active.POST("/workouts/:id/complete",  workoutHandler.Complete)
-			active.POST("/ai/compare",             compareHandler.Compare)
+			active.GET("/users/me/stats",                userHandler.Stats)
+			active.POST("/workouts/generate",           workoutHandler.Generate)
+			active.POST("/workouts/save-from-compare",  workoutHandler.SaveFromCompare)
+			active.GET("/workouts",                     workoutHandler.List)
+			active.GET("/workouts/:id",                 workoutHandler.Get)
+			active.POST("/workouts/:id/complete",       workoutHandler.Complete)
+			active.DELETE("/workouts/:id",              workoutHandler.Delete)
+			active.POST("/ai/compare",                  compareHandler.Compare)
 		}
 	}
 
