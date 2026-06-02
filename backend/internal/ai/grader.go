@@ -78,11 +78,7 @@ func (g *GroqGrader) GradeWorkout(ctx context.Context, req WorkoutRequest, resp 
 		return nil, fmt.Errorf("groq grader: empty response")
 	}
 
-	raw := completion.Choices[0].Message.Content
-	raw = strings.TrimPrefix(raw, "```json")
-	raw = strings.TrimPrefix(raw, "```")
-	raw = strings.TrimSuffix(raw, "```")
-	raw = strings.TrimSpace(raw)
+	raw := cleanJSON(completion.Choices[0].Message.Content)
 
 	var result GradeResult
 	if err := json.Unmarshal([]byte(raw), &result); err != nil {
@@ -121,11 +117,7 @@ func (g *GroqGrader) AnalyzeCompare(ctx context.Context, avgs []*database.Provid
 	if len(completion.Choices) == 0 {
 		return nil, fmt.Errorf("groq analyze: empty response")
 	}
-	raw := strings.TrimSpace(completion.Choices[0].Message.Content)
-	raw = strings.TrimPrefix(raw, "```json")
-	raw = strings.TrimPrefix(raw, "```")
-	raw = strings.TrimSuffix(raw, "```")
-	raw = strings.TrimSpace(raw)
+	raw := cleanJSON(completion.Choices[0].Message.Content)
 
 	var result SessionAnalysis
 	if err := json.Unmarshal([]byte(raw), &result); err != nil {
@@ -145,7 +137,7 @@ func buildAnalyzePrompt(avgs []*database.ProviderCompareAvg, sessionCount int) s
 	for _, a := range avgs {
 		fmt.Fprintf(&sb, "Provider: %s (based on %d sessions)\n", a.Provider, a.TotalSessions)
 		fmt.Fprintf(&sb, "  Library match rate:     %.0f%%\n", a.AvgLibraryMatchRate*100)
-		fmt.Fprintf(&sb, "  Structure completeness: %.1f/4\n", a.AvgCompletenessScore)
+		fmt.Fprintf(&sb, "  Structure completeness: %.1f/3\n", a.AvgCompletenessScore)
 		fmt.Fprintf(&sb, "  Exercises with notes:   %.0f%%\n", a.AvgNotesPresentRate*100)
 		fmt.Fprintf(&sb, "  Avg response length:    %.0f chars\n", a.AvgCharCount)
 		fmt.Fprintf(&sb, "  Avg emoji count:        %.1f\n", a.AvgEmojiCount)
