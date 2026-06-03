@@ -81,8 +81,11 @@ let toastTimer: ReturnType<typeof setTimeout> | null = null
 
 function connectWS() {
   if (ws || !auth.token) return
-  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  ws = new WebSocket(`${proto}//${window.location.host}/ws?token=${auth.token}`)
+  const apiBase = import.meta.env.VITE_API_BASE_URL
+  const wsBase = apiBase
+    ? apiBase.replace(/^http/, 'ws')
+    : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
+  ws = new WebSocket(`${wsBase}/ws?token=${auth.token}`)
   ws.onmessage = (event) => {
     try {
       const msg = JSON.parse(event.data)
