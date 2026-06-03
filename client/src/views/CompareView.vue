@@ -291,7 +291,7 @@
     :environment="environment"
     :prompt="prompt"
     @close="modalResult = null"
-    @saved="savedProviders.value.add(modalResult!.provider); savedProviders.value = new Set(savedProviders.value)"
+    @saved="savedProviders.add(modalResult!.provider); savedProviders = new Set(savedProviders)"
   />
 </template>
 
@@ -394,7 +394,6 @@ function setDuration(d: number) {
 const loading       = ref(false)
 const error         = ref('')
 const results       = ref<ProviderResult[] | null>(null)
-const expanded      = ref<Set<string>>(new Set())
 const savedProviders = ref<Set<string>>(new Set())
 const modalResult   = ref<ProviderResult | null>(null)
 
@@ -418,11 +417,6 @@ const bestLibraryMatch = computed(() =>
     .reduce<ProviderResult | null>((best, r) =>
       best === null || r.library_match!.match_rate > best.library_match!.match_rate ? r : best, null)
 )
-
-function toggleExpand(provider: string) {
-  if (expanded.value.has(provider)) expanded.value.delete(provider)
-  else expanded.value.add(provider)
-}
 
 function pct(rate: number) { return Math.round(rate * 100) + '%' }
 
@@ -470,7 +464,6 @@ async function compare() {
 
 function reset() {
   results.value    = null
-  expanded.value   = new Set()
   savedProviders.value = new Set()
   modalResult.value = null
   error.value      = ''

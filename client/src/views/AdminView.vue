@@ -752,16 +752,6 @@ async function runAnalysis() {
   }
 }
 
-function gradeColor(grade: string) {
-  switch (grade) {
-    case 'A': return 'bg-green-500/20 text-green-400'
-    case 'B': return 'bg-green-500/10 text-green-300'
-    case 'C': return 'bg-yellow-500/20 text-yellow-400'
-    case 'D': return 'bg-orange-500/20 text-orange-400'
-    case 'F': return 'bg-red-500/20 text-red-400'
-    default:  return 'bg-white/5 text-white/40'
-  }
-}
 
 function gradeTextColor(grade: string) {
   switch (grade) {
