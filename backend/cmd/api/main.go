@@ -29,6 +29,7 @@ const shutdownTimeout = 30 * time.Second
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
 
 	_ = godotenv.Load()
 
@@ -115,6 +116,7 @@ func main() {
 	adminHandler := admin.NewHandler(userStore, workoutStore, syncSvc, aiRequestStore, compareMetricsStore, narrator)
 
 	r := gin.New()
+	r.SetTrustedProxies([]string{"0.0.0.0/0"}) // Railway sits behind a reverse proxy; trust X-Forwarded-For so ClientIP() returns the real user IP
 	r.Use(gin.Recovery())
 	r.Use(gin.Logger())
 	r.Use(cors.New(cors.Config{

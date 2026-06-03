@@ -194,7 +194,7 @@
                 </div>
                 <div class="bg-white/5 rounded-xl px-3 py-2">
                   <p class="text-white/40">Structure</p>
-                  <p class="font-semibold">{{ r.behavioral.completeness_score }}/4</p>
+                  <p class="font-semibold">{{ r.behavioral.completeness_score }}/3</p>
                   <p class="text-white/30 mt-0.5">{{ sectionSummary(r.behavioral) }}</p>
                 </div>
                 <div class="bg-white/5 rounded-xl px-3 py-2">

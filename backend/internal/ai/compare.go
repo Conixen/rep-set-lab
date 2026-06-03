@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
@@ -155,7 +155,7 @@ func (h *CompareHandler) Compare(c *gin.Context) {
 					var gradeErr error
 					gradeResult, gradeErr = h.grader.GradeWorkout(ctx, aiReq, resp)
 					if gradeErr != nil {
-						log.Printf("groq grader [%s]: %v", p.Name(), gradeErr)
+						slog.Warn("groq grader failed", "provider", p.Name(), "error", gradeErr)
 					}
 				}
 			}
