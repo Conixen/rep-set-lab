@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex items-center justify-between pt-2">
       <div>
-        <p class="text-white/50 text-sm">Good morning</p>
+        <p class="text-white/50 text-sm">{{ greeting }}</p>
         <h1 class="text-2xl font-bold">{{ stats?.username ?? '…' }}</h1>
       </div>
       <div class="bg-violet-500/20 border border-violet-500/40 rounded-full px-3 py-1 text-violet-400 text-sm font-semibold">
@@ -54,6 +54,23 @@
 import { ref, computed, onMounted } from 'vue'
 import { api } from '../api/client'
 import { toMessage } from '../utils/error'
+
+const greetings: Record<string, string[]> = {
+  morning:   ['Good morning', 'Rise and grind', 'Morning, champ'],
+  afternoon: ['Good afternoon', 'Keep pushing', 'Afternoon check-in'],
+  evening:   ['Good evening', "Day's not done yet", 'Evening session'],
+  night:     ['Still grinding', 'Burning the midnight oil', 'Late night hustle'],
+}
+function getGreeting(): string {
+  const h = new Date().getHours()
+  const key = h >= 5 && h < 12 ? 'morning'
+            : h >= 12 && h < 17 ? 'afternoon'
+            : h >= 17 && h < 21 ? 'evening'
+            : 'night'
+  const list = greetings[key]
+  return list[Math.floor(Math.random() * list.length)]
+}
+const greeting = getGreeting()
 
 interface Stats {
   username:          string
