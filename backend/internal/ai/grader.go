@@ -132,26 +132,47 @@ func (g *GroqGrader) AnalyzeCompare(ctx context.Context, avgs []*database.Provid
 
 func buildAnalyzePrompt(avgs []*database.ProviderCompareAvg, sessionCount int) string {
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "Analyze workout generation performance from %d compare sessions across these AI providers.\n\n", sessionCount)
-	sb.WriteString("Provider aggregate metrics:\n\n")
+	fmt.Fprintf(&sb, "You are analyzing workout generation performance across %d compare sessions.\n", sessionCount)
+	if sessionCount < 15 {
+		sb.WriteString("Sample size is small — treat findings as directional, not conclusive.\n")
+	}
+	sb.WriteString(`
+Focus your analysis on these dimensions:
+1. Workout structure balance — warm-up vs main exercise counts relative to the requested duration. Does the split feel appropriate?
+2. Time accuracy — how close is the estimated workout duration to what was actually requested?
+3. Safety & compliance — injury compliance score and equipment violations. Are providers respecting constraints?
+4. Goal alignment — are the exercises and structure actually targeting the requested muscle group?
+5. Instruction quality — notes present rate and response length. Are exercises explained well enough for a user to follow?
+6. Cost & speed efficiency — tokens used, cost per run, latency. What does each provider cost in practice?
+
+Provider aggregate metrics:
+
+`)
 	for _, a := range avgs {
-		fmt.Fprintf(&sb, "Provider: %s (based on %d sessions)\n", a.Provider, a.TotalSessions)
-		fmt.Fprintf(&sb, "  Library match rate:     %.0f%%\n", a.AvgLibraryMatchRate*100)
-		fmt.Fprintf(&sb, "  Structure completeness: %.1f/3\n", a.AvgCompletenessScore)
-		fmt.Fprintf(&sb, "  Exercises with notes:   %.0f%%\n", a.AvgNotesPresentRate*100)
-		fmt.Fprintf(&sb, "  Avg response length:    %.0f chars\n", a.AvgCharCount)
-		fmt.Fprintf(&sb, "  Avg emoji count:        %.1f\n", a.AvgEmojiCount)
-		fmt.Fprintf(&sb, "  Equipment violations:   %.1f\n", a.AvgEquipmentViolations)
-		fmt.Fprintf(&sb, "  Estimated duration:     %.0f min\n", a.AvgEstimatedMinutes)
+		fmt.Fprintf(&sb, "Provider: %s (%d sessions)\n", a.Provider, a.TotalSessions)
+		fmt.Fprintf(&sb, "  Warm-up exercises (avg):   %.1f\n", a.AvgWarmUpCount)
+		fmt.Fprintf(&sb, "  Main exercises (avg):      %.1f\n", a.AvgMainCount)
+		fmt.Fprintf(&sb, "  Tips included (avg):       %.1f\n", a.AvgTipsCount)
+		fmt.Fprintf(&sb, "  Estimated duration:        %.0f min\n", a.AvgEstimatedMinutes)
+		fmt.Fprintf(&sb, "  Structure completeness:    %.1f/3\n", a.AvgCompletenessScore)
+		fmt.Fprintf(&sb, "  Library match rate:        %.0f%%\n", a.AvgLibraryMatchRate*100)
+		fmt.Fprintf(&sb, "  Exercises with notes:      %.0f%%\n", a.AvgNotesPresentRate*100)
+		fmt.Fprintf(&sb, "  Avg response length:       %.0f chars\n", a.AvgCharCount)
+		fmt.Fprintf(&sb, "  Equipment violations (avg):%.1f\n", a.AvgEquipmentViolations)
+		fmt.Fprintf(&sb, "  Emoji count (avg):         %.1f\n", a.AvgEmojiCount)
+		fmt.Fprintf(&sb, "  Avg input tokens:          %.0f\n", a.AvgInputTokens)
+		fmt.Fprintf(&sb, "  Avg output tokens:         %.0f\n", a.AvgOutputTokens)
+		fmt.Fprintf(&sb, "  Avg cost per run (USD):    $%.4f\n", a.AvgCostUSD)
+		fmt.Fprintf(&sb, "  Avg latency:               %.0f ms\n", a.AvgLatencyMs)
 		if a.AvgGroqInjuryScore > 0 {
-			fmt.Fprintf(&sb, "  Injury compliance:      %.1f/5\n", a.AvgGroqInjuryScore)
-			fmt.Fprintf(&sb, "  Equipment compliance:   %.1f/5\n", a.AvgGroqEquipmentScore)
-			fmt.Fprintf(&sb, "  Goal alignment:         %.1f/5\n", a.AvgGroqGoalScore)
+			fmt.Fprintf(&sb, "  Injury compliance:         %.1f/5\n", a.AvgGroqInjuryScore)
+			fmt.Fprintf(&sb, "  Equipment compliance:      %.1f/5\n", a.AvgGroqEquipmentScore)
+			fmt.Fprintf(&sb, "  Goal alignment:            %.1f/5\n", a.AvgGroqGoalScore)
 		}
 		sb.WriteString("\n")
 	}
 	sb.WriteString("Return only valid JSON:\n")
-	sb.WriteString(`{"narrative":"2-3 paragraph academic comparative analysis","verdicts":[{"provider":"name","grade":"A","summary":"one sentence"}]}`)
+	sb.WriteString(`{"narrative":"3-4 paragraph analysis covering structure balance, safety/compliance, instruction quality, and cost-efficiency. Be specific — reference actual numbers. Note where sample size limits confidence.","verdicts":[{"provider":"name","grade":"A","summary":"one sentence covering the provider's defining strength and weakness"}]}`)
 	sb.WriteString("\nGrade A=Excellent B=Good C=Average D=Poor F=Fail. No E grade.")
 	return sb.String()
 }
