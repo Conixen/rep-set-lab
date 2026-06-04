@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-dvh bg-[#111114] flex flex-col items-center justify-center p-6 gap-6">
-    <h1 class="text-3xl font-bold text-white">rep-set-lab</h1>
+    <h1 class="text-3xl font-bold text-white">Rep-Set-Lab</h1>
 
     <div class="w-full max-w-sm bg-[#1e1e24] rounded-2xl p-6 space-y-4">
       <div class="flex rounded-xl overflow-hidden border border-white/10">

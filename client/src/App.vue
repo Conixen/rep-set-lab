@@ -11,7 +11,7 @@
 
     <!-- Sidebar — desktop only -->
     <nav class="hidden lg:flex flex-col w-56 shrink-0 bg-[#1a1a1f] border-r border-white/10 p-4 gap-1">
-      <span class="text-lg font-bold text-white px-3 mb-6">rep-set-lab</span>
+      <span class="text-lg font-bold text-white px-3 mb-6">Rep-Set-Lab</span>
       <RouterLink
         v-for="tab in tabs"
         :key="tab.to"
