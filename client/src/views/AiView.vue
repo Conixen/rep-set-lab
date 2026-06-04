@@ -283,6 +283,7 @@ import { ref, computed, onMounted } from 'vue'
 import { api } from '../api/client'
 import { findLibraryMatch, type LibraryExercise } from '../utils/exerciseMatch'
 import { toMessage } from '../utils/error'
+import { mediaUrl } from '../utils/mediaUrl'
 import WorkoutModal from '../components/WorkoutModal.vue'
 
 interface Exercise {
@@ -392,7 +393,8 @@ const exerciseGifMap = computed<Record<string, string>>(() => {
   for (const name of allNames) {
     if (map[name] !== undefined) continue
     const match = findLibraryMatch(name, selectedMuscleGroups.value, libraryExercises.value, environment.value)
-    if (match?.gif_url) map[name] = match.gif_url
+    const url = mediaUrl(match?.gif_url)
+    if (url) map[name] = url
   }
   return map
 })

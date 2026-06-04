@@ -99,12 +99,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { api } from '../api/client'
 import { toMessage } from '../utils/error'
-
-const apiBase = import.meta.env.VITE_API_BASE_URL ?? ''
-function mediaUrl(url: string | null): string | null {
-  if (!url) return null
-  return url.startsWith('/') ? apiBase + url : url
-}
+import { mediaUrl } from '../utils/mediaUrl'
 
 interface Exercise {
   id:            number
