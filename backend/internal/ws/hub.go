@@ -19,7 +19,15 @@ const (
 	maxMessageSize = 512
 )
 
-const EventXPUpdate = "xp_update"
+const (
+	EventXPUpdate        = "xp_update"
+	EventAccountApproved = "account_approved"
+)
+
+// BroadcastAccountApproved notifies a user that their account has been approved.
+func (h *Hub) BroadcastAccountApproved(userID int64) {
+	h.Broadcast(userID, Event{Type: EventAccountApproved})
+}
 
 type Event struct {
 	Type string `json:"type"`

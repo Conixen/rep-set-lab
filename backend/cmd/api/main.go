@@ -113,7 +113,7 @@ func main() {
 	}
 	syncSvc := exercise.NewSyncService(exerciseStore, exerciseDBClient)
 
-	adminHandler := admin.NewHandler(userStore, workoutStore, syncSvc, aiRequestStore, compareMetricsStore, narrator)
+	adminHandler := admin.NewHandler(userStore, workoutStore, syncSvc, aiRequestStore, compareMetricsStore, narrator, hub)
 
 	r := gin.New()
 	r.SetTrustedProxies([]string{"0.0.0.0/0"}) // Railway sits behind a reverse proxy; trust X-Forwarded-For so ClientIP() returns the real user IP

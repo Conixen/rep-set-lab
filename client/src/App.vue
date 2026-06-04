@@ -48,7 +48,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import IconHome    from './components/icons/IconHome.vue'
 import IconLibrary from './components/icons/IconLibrary.vue'
@@ -58,7 +58,8 @@ import IconHistory from './components/icons/IconHistory.vue'
 import IconProfile from './components/icons/IconProfile.vue'
 import IconAdmin   from './components/icons/IconAdmin.vue'
 
-const auth = useAuthStore()
+const auth   = useAuthStore()
+const router = useRouter()
 
 const baseTabs = [
   { to: '/',        label: 'Home',    icon: IconHome },
@@ -96,6 +97,11 @@ function connectWS() {
           : `+${d.xp_earned} XP earned!`
         if (toastTimer) clearTimeout(toastTimer)
         toastTimer = setTimeout(() => toast.value = null, 3500)
+      } else if (msg.type === 'account_approved') {
+        toast.value = 'Your account has been approved — welcome!'
+        if (toastTimer) clearTimeout(toastTimer)
+        toastTimer = setTimeout(() => toast.value = null, 5000)
+        setTimeout(() => router.push('/'), 800)
       }
     } catch {}
   }

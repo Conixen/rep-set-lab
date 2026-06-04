@@ -54,6 +54,11 @@ type Narrator interface {
 	AnalyzeCompare(ctx context.Context, avgs []*database.ProviderCompareAvg, sessionCount int) (*ai.SessionAnalysis, error)
 }
 
+// Notifier pushes real-time events to connected users.
+type Notifier interface {
+	BroadcastAccountApproved(userID int64)
+}
+
 type Handler struct {
 	users          UserStore
 	workouts       WorkoutStore
@@ -61,10 +66,11 @@ type Handler struct {
 	aiRequests     AIRequestStore
 	compareMetrics CompareMetricsStore
 	narrator       Narrator
+	notifier       Notifier
 }
 
-func NewHandler(users UserStore, workouts WorkoutStore, syncer ExerciseSyncer, aiRequests AIRequestStore, compareMetrics CompareMetricsStore, narrator Narrator) *Handler {
-	return &Handler{users: users, workouts: workouts, syncer: syncer, aiRequests: aiRequests, compareMetrics: compareMetrics, narrator: narrator}
+func NewHandler(users UserStore, workouts WorkoutStore, syncer ExerciseSyncer, aiRequests AIRequestStore, compareMetrics CompareMetricsStore, narrator Narrator, notifier Notifier) *Handler {
+	return &Handler{users: users, workouts: workouts, syncer: syncer, aiRequests: aiRequests, compareMetrics: compareMetrics, narrator: narrator, notifier: notifier}
 }
 
 // --- Users ---
@@ -159,6 +165,8 @@ func (h *Handler) ApproveUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to approve user"})
 		return
 	}
+
+	h.notifier.BroadcastAccountApproved(id)
 
 	user, err := h.users.GetByID(c.Request.Context(), id)
 	if err != nil {
