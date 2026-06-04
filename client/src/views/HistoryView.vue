@@ -21,6 +21,7 @@
 
     <div v-if="loading" class="text-white/40 text-sm text-center py-8">Loading…</div>
     <p v-else-if="error" class="text-red-400 text-xs">{{ error }}</p>
+    <p v-else-if="workouts.length === 0" class="text-white/40 text-sm text-center py-8">No workouts generated yet.</p>
 
     <!-- ── History tab ── -->
     <template v-else-if="tab === 'history'">
