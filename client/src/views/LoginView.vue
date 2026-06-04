@@ -32,6 +32,7 @@
         v-model="password"
         type="password"
         placeholder="Password"
+        @keyup.enter="submit"
         class="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
       />
 
