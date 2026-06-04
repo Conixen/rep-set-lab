@@ -155,6 +155,7 @@ import { ref, computed, onMounted } from 'vue'
 import { api } from '../api/client'
 import { findLibraryMatch, type LibraryExercise } from '../utils/exerciseMatch'
 import { toMessage } from '../utils/error'
+import { mediaUrl } from '../utils/mediaUrl'
 
 interface Exercise {
   name: string
@@ -229,7 +230,8 @@ onMounted(async () => {
       if (map[name] !== undefined) continue
       const muscleGroupArr = props.muscleGroup ? [props.muscleGroup] : []
       const match = findLibraryMatch(name, muscleGroupArr, library, props.environment ?? 'gym')
-      if (match?.gif_url) map[name] = match.gif_url
+      const url = mediaUrl(match?.gif_url)
+      if (url) map[name] = url
     }
     gifMap.value = map
   } catch {
