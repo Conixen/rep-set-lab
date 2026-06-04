@@ -33,7 +33,7 @@
       >
         <img
           v-if="ex.gif_url || ex.thumbnail_url"
-          :src="(ex.gif_url || ex.thumbnail_url)!"
+          :src="mediaUrl(ex.gif_url || ex.thumbnail_url)!"
           :alt="ex.name"
           class="h-24 w-full object-cover rounded-xl bg-white/5"
         />
@@ -67,7 +67,7 @@
 
         <img
           v-if="selectedExercise.gif_url || selectedExercise.thumbnail_url"
-          :src="(selectedExercise.gif_url || selectedExercise.thumbnail_url)!"
+          :src="mediaUrl(selectedExercise.gif_url || selectedExercise.thumbnail_url)!"
           :alt="selectedExercise.name"
           class="w-full rounded-t-2xl bg-white/5"
         />
@@ -99,6 +99,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { api } from '../api/client'
 import { toMessage } from '../utils/error'
+
+const apiBase = import.meta.env.VITE_API_BASE_URL ?? ''
+function mediaUrl(url: string | null): string | null {
+  if (!url) return null
+  return url.startsWith('/') ? apiBase + url : url
+}
 
 interface Exercise {
   id:            number
