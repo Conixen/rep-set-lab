@@ -391,7 +391,7 @@
             v-for="u in users" :key="u.id"
             class="flex items-center justify-between gap-3 py-2 border-b border-white/5 last:border-0"
           >
-            <div class="min-w-0">
+            <div class="min-w-0 flex-1 text-left">
               <p class="text-sm font-medium truncate">{{ u.username }}</p>
               <p class="text-xs text-white/30 truncate">{{ u.email }}</p>
             </div>
