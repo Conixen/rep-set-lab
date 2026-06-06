@@ -19,21 +19,21 @@
         v-model="email"
         type="email"
         placeholder="Email"
-        class="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
+        class="w-full bg-white/5 rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
       />
       <input
         v-if="mode === 'Register'"
         v-model="username"
         type="text"
         placeholder="Username"
-        class="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
+        class="w-full bg-white/5 rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
       />
       <input
         v-model="password"
         type="password"
         placeholder="Password"
         @keyup.enter="submit"
-        class="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
+        class="w-full bg-white/5 rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
       />
 
       <p v-if="error" class="text-red-400 text-xs">{{ error }}</p>

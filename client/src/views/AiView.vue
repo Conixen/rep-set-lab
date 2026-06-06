@@ -6,7 +6,7 @@
     <template v-if="!result">
       <select
         v-model="selectedProvider"
-        class="w-full bg-[#1e1e24] rounded-xl px-4 py-3 text-sm text-white outline-none focus:ring-1 focus:ring-violet-500"
+        class="w-full bg-[#1e1e24] rounded-xl px-4 py-3 text-base text-white outline-none focus:ring-1 focus:ring-violet-500"
       >
         <option v-for="p in providers" :key="p.key" :value="p.key">{{ p.label }}</option>
       </select>
@@ -55,7 +55,7 @@
             min="5"
             max="180"
             placeholder="Or enter minutes manually..."
-            class="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
+            class="w-full bg-white/5 rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
           />
         </div>
 
@@ -84,29 +84,33 @@
         </div>
 
         <div class="space-y-2">
-          <p class="text-sm text-white/60">Injuries / limitations</p>
-          <input
+          <p class="text-sm text-white/60">Injuries / limitations <span class="text-white/30">(optional)</span></p>
+          <textarea
             v-model="injuries"
-            type="text"
+            rows="2"
             placeholder="e.g. bad knees, shoulder impingement..."
-            class="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
+            @focus="scrollFieldIntoView($event)"
+            class="w-full bg-white/5 rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500 resize-none"
           />
         </div>
 
-        <div class="flex items-center gap-2">
-          <p class="text-sm text-white/60">Workout language</p>
-          <div class="flex gap-1 ml-auto">
-            <button
-              @click="language = 'en'"
-              :class="language === 'en' ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
-              class="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
-            >EN</button>
-            <button
-              @click="language = 'sv'"
-              :class="language === 'sv' ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
-              class="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
-            >SV</button>
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <p class="text-sm text-white/60">Workout language</p>
+            <div class="flex gap-1 ml-auto">
+              <button
+                @click="language = 'en'"
+                :class="language === 'en' ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+                class="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+              >EN</button>
+              <button
+                @click="language = 'sv'"
+                :class="language === 'sv' ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+                class="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+              >SV</button>
+            </div>
           </div>
+          <p class="text-xs text-white/30">Applies to the generated workout content, not the app interface.</p>
         </div>
 
         <div class="space-y-2">
@@ -130,7 +134,8 @@
             v-model="prompt"
             rows="3"
             placeholder="e.g. bad lower back but can still row — just no deadlifts, only dumbbells at home..."
-            class="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500 resize-none"
+            @focus="scrollFieldIntoView($event)"
+            class="w-full bg-white/5 rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500 resize-none"
           />
         </div>
       </div>
@@ -140,9 +145,13 @@
       <button
         @click="generate"
         :disabled="loading"
-        class="w-full bg-violet-500 hover:bg-violet-600 disabled:opacity-50 active:scale-95 transition-all text-white font-semibold py-4 rounded-2xl text-sm"
+        class="w-full bg-violet-500 hover:bg-violet-600 disabled:opacity-50 active:scale-95 transition-all text-white font-semibold py-4 rounded-2xl text-sm flex items-center justify-center gap-2"
       >
-        {{ loading ? 'Generating… this can take up to 15s' : `Generate ${selectedMuscleGroups.join(', ') || 'workout'} · ${effectiveDuration} min` }}
+        <svg v-if="loading" class="animate-spin h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+        </svg>
+        <span>{{ loading ? 'Generating…' : `Generate ${selectedMuscleGroups.join(', ') || 'workout'} · ${effectiveDuration} min` }}</span>
       </button>
     </template>
 
@@ -151,7 +160,7 @@
       <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-5">
         <div>
           <h2 class="text-lg font-bold">{{ result.response.title }}</h2>
-          <p class="text-sm text-white/60 mt-1">{{ result.response.description }}</p>
+          <p class="text-sm text-white/80 mt-1">{{ result.response.description }}</p>
         </div>
 
         <div class="flex flex-wrap gap-2 text-xs">
@@ -162,7 +171,7 @@
         </div>
 
         <section v-if="result.response.warm_up?.length">
-          <p class="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">Warm Up</p>
+          <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3">Warm Up</p>
           <div class="space-y-2">
             <div v-for="ex in result.response.warm_up" :key="ex.name" class="bg-white/5 rounded-xl p-3">
               <button v-if="exerciseGifMap[ex.name]" @click="openPopup(ex.name)"
@@ -175,13 +184,13 @@
                 <span v-else-if="ex.duration_seconds">{{ ex.duration_seconds }}s</span>
                 <span v-if="ex.rest_seconds"> · {{ ex.rest_seconds }}s rest</span>
               </p>
-              <p v-if="ex.notes" class="text-xs text-white/30 mt-1">{{ ex.notes }}</p>
+              <p v-if="ex.notes" class="text-xs text-white/50 mt-1">{{ ex.notes }}</p>
             </div>
           </div>
         </section>
 
         <section v-if="result.response.main?.length">
-          <p class="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">Main</p>
+          <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3">Main</p>
           <div class="space-y-2">
             <div v-for="ex in result.response.main" :key="ex.name" class="bg-white/5 rounded-xl p-3">
               <button v-if="exerciseGifMap[ex.name]" @click="openPopup(ex.name)"
@@ -194,16 +203,17 @@
                 <span v-else-if="ex.duration_seconds">{{ ex.duration_seconds }}s</span>
                 <span v-if="ex.rest_seconds"> · {{ ex.rest_seconds }}s rest</span>
               </p>
-              <p v-if="ex.notes" class="text-xs text-white/30 mt-1">{{ ex.notes }}</p>
+              <p v-if="ex.notes" class="text-xs text-white/50 mt-1">{{ ex.notes }}</p>
             </div>
           </div>
         </section>
 
         <section v-if="result.response.tips?.length">
-          <p class="text-xs font-semibold text-white/40 uppercase tracking-widest mb-2">Tips</p>
+          <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-2">Tips</p>
           <ul class="space-y-1">
-            <li v-for="tip in result.response.tips" :key="tip" class="text-sm text-white/60 flex gap-2">
-              <span class="text-violet-400 shrink-0">•</span>{{ tip }}
+            <li v-for="tip in result.response.tips" :key="tip" class="text-sm text-white/60 flex gap-2 items-start">
+              <span class="text-violet-400 shrink-0 mt-0.5">•</span>
+              <span>{{ tip }}</span>
             </li>
           </ul>
         </section>
@@ -279,7 +289,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { api } from '../api/client'
 import { findLibraryMatch, type LibraryExercise } from '../utils/exerciseMatch'
 import { toMessage } from '../utils/error'
@@ -404,6 +414,19 @@ const activePopup = ref<string | null>(null)
 function openPopup(name: string) { activePopup.value = name }
 function closePopup() { activePopup.value = null }
 
+// Lock main scroll when GIF popup is open
+watch(activePopup, (val) => {
+  const main = document.querySelector('main') as HTMLElement | null
+  if (main) main.style.overflowY = val ? 'hidden' : ''
+})
+
+// Scroll form field into view when keyboard opens on mobile
+function scrollFieldIntoView(e: FocusEvent) {
+  setTimeout(() => {
+    (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, 300)
+}
+
 async function generate() {
   error.value = ''
   loading.value = true
@@ -418,6 +441,9 @@ async function generate() {
       environment:      environment.value,
       language:         language.value,
     })
+    await nextTick()
+    const main = document.querySelector('main') as HTMLElement | null
+    main?.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (e: unknown) {
     error.value = toMessage(e, 'Failed to generate workout')
   } finally {

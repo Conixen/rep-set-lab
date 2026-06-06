@@ -4,7 +4,7 @@
       class="fixed inset-0 z-50 bg-black/80 overflow-y-auto"
       @click.self="$emit('close')"
     >
-      <div class="min-h-full flex items-start justify-center p-4 py-8">
+      <div class="min-h-full flex items-center justify-center p-4 py-8">
         <div v-if="!workout" class="bg-[#1e1e24] rounded-2xl w-full max-w-lg p-8 text-center text-white/40">
           No workout data.<button @click="$emit('close')" class="block mx-auto mt-4 text-violet-400 text-sm">Close</button>
         </div>
@@ -14,7 +14,7 @@
           <div class="flex items-start justify-between p-5 pb-3">
             <div class="flex-1 min-w-0 pr-3">
               <h2 class="text-lg font-bold">{{ workout.title }}</h2>
-              <p class="text-sm text-white/50 mt-1 leading-relaxed">{{ workout.description }}</p>
+              <p class="text-sm text-white/70 mt-1 leading-relaxed">{{ workout.description }}</p>
             </div>
             <button
               @click="$emit('close')"
@@ -33,7 +33,7 @@
           <!-- Exercises -->
           <div class="px-5 pb-5 space-y-5">
             <section v-if="workout.warm_up?.length">
-              <p class="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">Warm Up</p>
+              <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3">Warm Up</p>
               <div class="space-y-2">
                 <div
                   v-for="ex in workout.warm_up" :key="ex.name"
@@ -48,19 +48,34 @@
                   />
                   <div class="p-3 flex-1 min-w-0">
                     <p class="font-medium text-sm">{{ ex.name }}</p>
-                    <p class="text-xs text-white/40 mt-0.5">
-                      <span v-if="ex.sets && ex.reps">{{ ex.sets }} × {{ ex.reps }} reps</span>
-                      <span v-else-if="ex.duration_seconds">{{ ex.duration_seconds }}s</span>
-                      <span v-if="ex.rest_seconds"> · {{ ex.rest_seconds }}s rest</span>
-                    </p>
-                    <p v-if="ex.notes" class="text-xs text-white/30 mt-1 leading-relaxed">{{ ex.notes }}</p>
+                    <div class="flex items-center justify-between mt-0.5 gap-2">
+                      <p class="text-xs text-white/40">
+                        <span v-if="ex.sets && ex.reps">{{ ex.sets }} × {{ ex.reps }} reps</span>
+                        <span v-else-if="ex.duration_seconds">{{ ex.duration_seconds }}s</span>
+                      </p>
+                      <template v-if="ex.rest_seconds">
+                        <button
+                          v-if="!activeTimer || activeTimer.name !== ex.name"
+                          @click="startRest(ex.name, ex.rest_seconds!)"
+                          class="text-xs bg-white/10 hover:bg-white/15 text-white/50 px-2 py-0.5 rounded-lg transition-colors shrink-0"
+                        >Rest {{ ex.rest_seconds }}s</button>
+                        <div v-else class="flex items-center gap-1.5 shrink-0">
+                          <span
+                            class="text-xs font-mono font-bold tabular-nums"
+                            :class="activeTimer.remaining <= 3 ? 'text-red-400 animate-pulse' : 'text-violet-400'"
+                          >{{ activeTimer.remaining }}s</span>
+                          <button @click="cancelRest" class="text-white/30 hover:text-white/60 text-xs">✕</button>
+                        </div>
+                      </template>
+                    </div>
+                    <p v-if="ex.notes" class="text-xs text-white/50 mt-1 leading-relaxed">{{ ex.notes }}</p>
                   </div>
                 </div>
               </div>
             </section>
 
             <section v-if="workout.main?.length">
-              <p class="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">Main</p>
+              <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3">Main</p>
               <div class="space-y-2">
                 <div
                   v-for="ex in workout.main" :key="ex.name"
@@ -75,22 +90,38 @@
                   />
                   <div class="p-3 flex-1 min-w-0">
                     <p class="font-medium text-sm">{{ ex.name }}</p>
-                    <p class="text-xs text-white/40 mt-0.5">
-                      <span v-if="ex.sets && ex.reps">{{ ex.sets }} × {{ ex.reps }} reps</span>
-                      <span v-else-if="ex.duration_seconds">{{ ex.duration_seconds }}s</span>
-                      <span v-if="ex.rest_seconds"> · {{ ex.rest_seconds }}s rest</span>
-                    </p>
-                    <p v-if="ex.notes" class="text-xs text-white/30 mt-1 leading-relaxed">{{ ex.notes }}</p>
+                    <div class="flex items-center justify-between mt-0.5 gap-2">
+                      <p class="text-xs text-white/40">
+                        <span v-if="ex.sets && ex.reps">{{ ex.sets }} × {{ ex.reps }} reps</span>
+                        <span v-else-if="ex.duration_seconds">{{ ex.duration_seconds }}s</span>
+                      </p>
+                      <template v-if="ex.rest_seconds">
+                        <button
+                          v-if="!activeTimer || activeTimer.name !== ex.name"
+                          @click="startRest(ex.name, ex.rest_seconds!)"
+                          class="text-xs bg-white/10 hover:bg-white/15 text-white/50 px-2 py-0.5 rounded-lg transition-colors shrink-0"
+                        >Rest {{ ex.rest_seconds }}s</button>
+                        <div v-else class="flex items-center gap-1.5 shrink-0">
+                          <span
+                            class="text-xs font-mono font-bold tabular-nums"
+                            :class="activeTimer.remaining <= 3 ? 'text-red-400 animate-pulse' : 'text-violet-400'"
+                          >{{ activeTimer.remaining }}s</span>
+                          <button @click="cancelRest" class="text-white/30 hover:text-white/60 text-xs">✕</button>
+                        </div>
+                      </template>
+                    </div>
+                    <p v-if="ex.notes" class="text-xs text-white/50 mt-1 leading-relaxed">{{ ex.notes }}</p>
                   </div>
                 </div>
               </div>
             </section>
 
             <section v-if="workout.tips?.length">
-              <p class="text-xs font-semibold text-white/40 uppercase tracking-widest mb-2">Tips</p>
+              <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-2">Tips</p>
               <ul class="space-y-1.5">
-                <li v-for="tip in workout.tips" :key="tip" class="text-sm text-white/60 flex gap-2">
-                  <span class="text-violet-400 shrink-0">•</span>{{ tip }}
+                <li v-for="tip in workout.tips" :key="tip" class="text-sm text-white/60 flex gap-2 items-start">
+                  <span class="text-violet-400 shrink-0 mt-0.5">•</span>
+                  <span>{{ tip }}</span>
                 </li>
               </ul>
             </section>
@@ -124,18 +155,31 @@
 
             <!-- In DB, not completed (from AI or Saved tab) -->
             <template v-else-if="mode === 'saved' && !xpResult">
-              <div class="flex-1 bg-green-500/10 text-green-400 py-3 rounded-2xl text-sm font-semibold text-center">Saved ✓</div>
-              <button
-                @click="handleComplete"
-                :disabled="completing"
-                class="flex-1 bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white font-semibold py-3 rounded-2xl text-sm transition-colors"
-              >{{ completing ? 'Completing…' : `Complete · ${xpToEarn} XP` }}</button>
-              <button
-                @click="handleDelete"
-                :disabled="deleting"
-                class="px-4 py-3 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm transition-colors"
-                aria-label="Delete workout"
-              >{{ deleting ? '…' : '🗑' }}</button>
+              <template v-if="!confirmingDelete">
+                <div class="flex-1 bg-green-500/10 text-green-400 py-3 rounded-2xl text-sm font-semibold text-center">Saved ✓</div>
+                <button
+                  @click="handleComplete"
+                  :disabled="completing"
+                  class="flex-1 bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white font-semibold py-3 rounded-2xl text-sm transition-colors"
+                >{{ completing ? 'Completing…' : `Complete · ${xpToEarn} XP` }}</button>
+                <button
+                  @click="confirmingDelete = true"
+                  class="px-4 py-3 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm transition-colors"
+                  aria-label="Delete workout"
+                >🗑</button>
+              </template>
+              <template v-else>
+                <span class="flex-1 text-sm text-white/60 flex items-center">Remove workout?</span>
+                <button
+                  @click="handleDelete"
+                  :disabled="deleting"
+                  class="flex-1 bg-red-500/20 hover:bg-red-500/30 disabled:opacity-50 text-red-400 font-semibold py-3 rounded-2xl text-sm transition-colors"
+                >{{ deleting ? '…' : 'Yes, delete' }}</button>
+                <button
+                  @click="confirmingDelete = false"
+                  class="flex-1 bg-white/10 hover:bg-white/15 text-white/60 font-semibold py-3 rounded-2xl text-sm transition-colors"
+                >Cancel</button>
+              </template>
             </template>
 
             <!-- Completed -->
@@ -151,7 +195,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { api } from '../api/client'
 import { findLibraryMatch, type LibraryExercise } from '../utils/exerciseMatch'
 import { toMessage } from '../utils/error'
@@ -216,6 +260,43 @@ const xpToEarn = computed(() => {
   return 0
 })
 
+// Lock background scroll while modal is open
+onMounted(() => {
+  const main = document.querySelector('main') as HTMLElement | null
+  if (main) main.style.overflowY = 'hidden'
+})
+onUnmounted(() => {
+  const main = document.querySelector('main') as HTMLElement | null
+  if (main) main.style.overflowY = ''
+  if (timerInterval) clearInterval(timerInterval)
+})
+
+// Rest countdown timer
+const activeTimer = ref<{ name: string; remaining: number } | null>(null)
+let timerInterval: ReturnType<typeof setInterval> | null = null
+
+function startRest(name: string, seconds: number) {
+  if (timerInterval) clearInterval(timerInterval)
+  activeTimer.value = { name, remaining: seconds }
+  timerInterval = setInterval(() => {
+    if (!activeTimer.value) return
+    if (activeTimer.value.remaining <= 1) {
+      clearInterval(timerInterval!)
+      timerInterval = null
+      activeTimer.value = null
+      if (navigator.vibrate) navigator.vibrate(300)
+    } else {
+      activeTimer.value.remaining--
+    }
+  }, 1000)
+}
+
+function cancelRest() {
+  if (timerInterval) clearInterval(timerInterval)
+  timerInterval = null
+  activeTimer.value = null
+}
+
 // GIF map
 const gifMap = ref<Record<string, string>>({})
 onMounted(async () => {
@@ -240,11 +321,12 @@ onMounted(async () => {
 })
 
 // Actions
-const saving      = ref(false)
-const completing  = ref(false)
-const deleting    = ref(false)
-const actionError = ref('')
-const xpResult    = ref<XPResult | null>(null)
+const saving            = ref(false)
+const completing        = ref(false)
+const deleting          = ref(false)
+const confirmingDelete  = ref(false)
+const actionError       = ref('')
+const xpResult          = ref<XPResult | null>(null)
 
 async function handleSave() {
   saving.value = true

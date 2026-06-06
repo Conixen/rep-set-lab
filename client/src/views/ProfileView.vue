@@ -9,7 +9,7 @@
         <div class="w-20 h-20 rounded-full bg-violet-500/30 flex items-center justify-center text-3xl font-bold text-violet-400">
           {{ stats.username[0].toUpperCase() }}
         </div>
-        <p class="text-xl font-bold">{{ stats.username }}</p>
+        <p class="text-xl font-bold text-white">{{ stats.username }}</p>
       </div>
 
       <div class="grid grid-cols-3 gap-3">

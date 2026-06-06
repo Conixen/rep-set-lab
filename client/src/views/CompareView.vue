@@ -2,7 +2,7 @@
   <div class="p-5 space-y-5">
     <div>
       <h1 class="text-2xl font-bold pt-2">Provider Compare</h1>
-      <p class="text-sm text-white/40 mt-1">Run the same prompt through all active providers in parallel.</p>
+      <p class="text-sm text-white/60 mt-1">Run the same prompt through all active providers in parallel.</p>
     </div>
 
     <!-- FORM -->
@@ -48,7 +48,7 @@
             v-model="customDuration"
             type="number" min="5" max="180"
             placeholder="Or enter minutes manually..."
-            class="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
+            class="w-full bg-white/5 rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
           />
         </div>
 
@@ -82,24 +82,27 @@
             v-model="injuries"
             type="text"
             placeholder="e.g. bad knees, shoulder impingement..."
-            class="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
+            class="w-full bg-white/5 rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
           />
         </div>
 
-        <div class="flex items-center gap-2">
-          <p class="text-sm text-white/60">Workout language</p>
-          <div class="flex gap-1 ml-auto">
-            <button
-              @click="language = 'en'"
-              :class="language === 'en' ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
-              class="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
-            >EN</button>
-            <button
-              @click="language = 'sv'"
-              :class="language === 'sv' ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
-              class="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
-            >SV</button>
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <p class="text-sm text-white/60">Workout language</p>
+            <div class="flex gap-1 ml-auto">
+              <button
+                @click="language = 'en'"
+                :class="language === 'en' ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+                class="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+              >EN</button>
+              <button
+                @click="language = 'sv'"
+                :class="language === 'sv' ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+                class="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+              >SV</button>
+            </div>
           </div>
+          <p class="text-xs text-white/30">Applies to the generated workout content, not the app interface.</p>
         </div>
 
         <div class="space-y-2">
@@ -348,9 +351,9 @@ interface ProviderResult {
 }
 
 const environments = [
-  { key: 'gym',     label: 'Gym' },
-  { key: 'home',    label: 'Home' },
-  { key: 'outdoor', label: 'Outdoor' },
+  { key: 'gym',     label: '🏋️ Gym' },
+  { key: 'home',    label: '🏠 Home' },
+  { key: 'outdoor', label: '🌳 Outdoor' },
 ]
 const muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Calves', 'Wrists']
 const durations    = [30, 45, 60, 90]
