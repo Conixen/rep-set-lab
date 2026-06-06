@@ -6,7 +6,7 @@
       v-model="search"
       type="text"
       placeholder="Search exercises..."
-      class="w-full bg-[#1e1e24] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
+      class="w-full bg-[#1e1e24] rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
     />
 
     <div class="flex gap-2 overflow-x-auto pb-1">
@@ -26,7 +26,7 @@
 
     <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-3">
       <div
-        v-for="ex in filteredExercises"
+        v-for="ex in pagedExercises"
         :key="ex.id"
         @click="selectedExercise = ex"
         class="bg-[#1e1e24] rounded-2xl p-4 space-y-2 cursor-pointer active:scale-95 transition-transform"
@@ -48,6 +48,23 @@
           </span>
         </div>
       </div>
+    </div>
+
+    <!-- Pagination -->
+    <div v-if="totalPages > 1" class="flex items-center justify-between pt-2 pb-4">
+      <button
+        @click="page--"
+        :disabled="page === 1"
+        class="px-4 py-2 rounded-xl bg-[#1e1e24] text-sm font-medium transition-colors disabled:opacity-30"
+        :class="page > 1 ? 'text-white hover:bg-white/10' : 'text-white/30'"
+      >← Prev</button>
+      <span class="text-sm text-white/40">{{ page }} / {{ totalPages }}</span>
+      <button
+        @click="page++"
+        :disabled="page === totalPages"
+        class="px-4 py-2 rounded-xl bg-[#1e1e24] text-sm font-medium transition-colors disabled:opacity-30"
+        :class="page < totalPages ? 'text-white hover:bg-white/10' : 'text-white/30'"
+      >Next →</button>
     </div>
   </div>
 
@@ -96,7 +113,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { api } from '../api/client'
 import { toMessage } from '../utils/error'
 import { mediaUrl } from '../utils/mediaUrl'
@@ -112,17 +129,17 @@ interface Exercise {
   gif_url:       string | null
 }
 
+const PAGE_SIZE = 20
+
 const exercises        = ref<Exercise[]>([])
 const search           = ref('')
 const activeFilter     = ref('All')
+const page             = ref(1)
 const loading          = ref(true)
 const error            = ref('')
 const selectedExercise = ref<Exercise | null>(null)
 
-const filters = computed(() => {
-  const groups = [...new Set(exercises.value.map(e => e.muscle_group).filter(Boolean))]
-  return ['All', ...groups]
-})
+const filters = ['All', 'back', 'chest', 'shoulders', 'arms', 'legs', 'core', 'lower legs', 'lower arms']
 
 const filteredExercises = computed(() =>
   exercises.value.filter(e => {
@@ -131,6 +148,15 @@ const filteredExercises = computed(() =>
     return matchesFilter && matchesSearch
   })
 )
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredExercises.value.length / PAGE_SIZE)))
+
+const pagedExercises = computed(() => {
+  const start = (page.value - 1) * PAGE_SIZE
+  return filteredExercises.value.slice(start, start + PAGE_SIZE)
+})
+
+watch([activeFilter, search], () => { page.value = 1 })
 
 onMounted(async () => {
   try {

@@ -2,8 +2,12 @@ package exercise
 
 import (
 	"context"
+	"errors"
+	"log/slog"
+	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/leonj/rep-set-lab/internal/database"
 )
 
@@ -28,13 +32,53 @@ type GIFFetcher interface {
 	FetchGIF(ctx context.Context, name string) (string, error)
 }
 
+// BulkExerciseFetcher is satisfied by *ExerciseDBClient.
+type BulkExerciseFetcher interface {
+	FetchByBodyPart(ctx context.Context, bodyPart string) ([]ExerciseDBExercise, error)
+}
+
+// exerciseBulkStore handles bulk upsert for the import.
+type exerciseBulkStore interface {
+	BulkUpsert(ctx context.Context, exercises []*database.Exercise) error
+}
+
+// BulkImportResult summarises a bulk import run.
+type BulkImportResult struct {
+	Imported int `json:"imported"`
+	Failed   int `json:"failed"`
+}
+
+// ErrBulkImportNotConfigured is returned when no ExerciseDB key is set.
+var ErrBulkImportNotConfigured = errors.New("bulk import not configured: EXERCISEDB_API_KEY not set")
+
+// bodyPartToMuscleGroup maps ExerciseDB body parts to our muscle group labels.
+var bodyPartToMuscleGroup = map[string]string{
+	"back":       "back",
+	"chest":      "chest",
+	"shoulders":  "shoulders",
+	"upper arms": "arms",
+	"upper legs": "legs",
+	"waist":      "core",
+	"lower legs": "lower legs",
+	"lower arms": "lower arms",
+}
+
 type SyncService struct {
-	exercises  exerciseMediaStore
-	exerciseDB GIFFetcher // nil when EXERCISEDB_API_KEY is not set
+	exercises   exerciseMediaStore
+	exerciseDB  GIFFetcher // nil when EXERCISEDB_API_KEY is not set
+	bulkStore   exerciseBulkStore
+	bulkFetcher BulkExerciseFetcher
 }
 
 func NewSyncService(exercises exerciseMediaStore, exerciseDB GIFFetcher) *SyncService {
 	return &SyncService{exercises: exercises, exerciseDB: exerciseDB}
+}
+
+// WithBulkImport wires in the extra dependencies needed for BulkImport.
+func (s *SyncService) WithBulkImport(store exerciseBulkStore, fetcher BulkExerciseFetcher) *SyncService {
+	s.bulkStore = store
+	s.bulkFetcher = fetcher
+	return s
 }
 
 // Sync fetches GIF URLs for every exercise that is missing one.
@@ -82,4 +126,61 @@ func (s *SyncService) Sync(ctx context.Context) (SyncResult, error) {
 	}
 
 	return result, nil
+}
+
+// BulkImport fetches all exercises from ExerciseDB by body part and upserts them.
+// One-time admin operation — safe to re-run, existing aliases are preserved.
+func (s *SyncService) BulkImport(ctx context.Context) (BulkImportResult, error) {
+	if s.bulkFetcher == nil || s.bulkStore == nil {
+		return BulkImportResult{}, ErrBulkImportNotConfigured
+	}
+
+	var result BulkImportResult
+
+	for bodyPart, muscleGroup := range bodyPartToMuscleGroup {
+		if ctx.Err() != nil {
+			break
+		}
+
+		entries, err := s.bulkFetcher.FetchByBodyPart(ctx, bodyPart)
+		if err != nil {
+			slog.Default().Error("bulk import: fetch failed", "body_part", bodyPart, "error", err)
+			result.Failed++
+			continue
+		}
+
+		batch := make([]*database.Exercise, 0, len(entries))
+		for _, e := range entries {
+			ex := &database.Exercise{
+				Name:        titleCase(e.Name),
+				Description: e.Description,
+				MuscleGroup: muscleGroup,
+				Difficulty:  e.Difficulty,
+				Equipment:   e.Equipment,
+				Aliases:     pq.StringArray{},
+			}
+			ex.GifURL.String = "/api/v1/exercises/image/" + e.ID
+			ex.GifURL.Valid = true
+			batch = append(batch, ex)
+		}
+
+		if err := s.bulkStore.BulkUpsert(ctx, batch); err != nil {
+			slog.Default().Error("bulk import: upsert failed", "body_part", bodyPart, "error", err)
+			result.Failed += len(batch)
+			continue
+		}
+		result.Imported += len(batch)
+	}
+
+	return result, nil
+}
+
+func titleCase(s string) string {
+	words := strings.Fields(s)
+	for i, w := range words {
+		if len(w) > 0 {
+			words[i] = strings.ToUpper(w[:1]) + w[1:]
+		}
+	}
+	return strings.Join(words, " ")
 }

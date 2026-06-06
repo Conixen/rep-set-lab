@@ -443,6 +443,35 @@
           Safe to run multiple times — skips exercises that already have a GIF.
         </p>
 
+        <!-- Bulk import -->
+        <div class="border-t border-white/10 pt-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Bulk import</p>
+            <button
+              @click="runBulkImport"
+              :disabled="bulkLoading"
+              class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white font-medium transition-colors disabled:opacity-50"
+            >
+              <span v-if="bulkLoading">Importing…</span>
+              <span v-else>⬇ Import all from ExerciseDB</span>
+            </button>
+          </div>
+          <p class="text-xs text-white/40 leading-relaxed">
+            Pulls ~1 340 exercises from ExerciseDB (back, chest, shoulders, arms, legs, core, calves, wrists) and upserts them into the library. Takes ~30 s. Safe to re-run.
+          </p>
+          <div v-if="bulkResult" class="grid grid-cols-2 gap-2">
+            <div class="bg-white/5 rounded-xl p-3 text-center">
+              <p class="text-xl font-bold text-green-400">{{ bulkResult.imported }}</p>
+              <p class="text-xs text-white/40 mt-0.5">Imported</p>
+            </div>
+            <div class="bg-white/5 rounded-xl p-3 text-center">
+              <p class="text-xl font-bold" :class="bulkResult.failed > 0 ? 'text-red-400' : 'text-white/30'">{{ bulkResult.failed }}</p>
+              <p class="text-xs text-white/40 mt-0.5">Failed</p>
+            </div>
+          </div>
+          <p v-if="bulkError" class="text-red-400 text-xs">{{ bulkError }}</p>
+        </div>
+
         <!-- Result -->
         <div v-if="syncResult" class="space-y-3 pt-1">
           <div class="grid grid-cols-4 gap-2">
@@ -811,6 +840,24 @@ async function runSync() {
     syncError.value = toMessage(e, 'Sync failed')
   } finally {
     syncLoading.value = false
+  }
+}
+
+interface BulkImportResult { imported: number; failed: number }
+const bulkLoading = ref(false)
+const bulkResult  = ref<BulkImportResult | null>(null)
+const bulkError   = ref('')
+
+async function runBulkImport() {
+  bulkLoading.value = true
+  bulkResult.value  = null
+  bulkError.value   = ''
+  try {
+    bulkResult.value = await api.post<BulkImportResult>('/admin/exercises/bulk-import', {})
+  } catch (e: unknown) {
+    bulkError.value = toMessage(e, 'Bulk import failed')
+  } finally {
+    bulkLoading.value = false
   }
 }
 </script>

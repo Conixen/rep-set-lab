@@ -108,10 +108,14 @@ func main() {
 	compareHandler  := ai.NewCompareHandler(providers, grader, exerciseStore, aiRequestStore, compareMetricsStore)
 
 	var exerciseDBClient exercise.GIFFetcher
+	var bulkFetcher exercise.BulkExerciseFetcher
 	if cfg.ExerciseDBKey != "" {
-		exerciseDBClient = exercise.NewExerciseDBClient(cfg.ExerciseDBKey)
+		client := exercise.NewExerciseDBClient(cfg.ExerciseDBKey)
+		exerciseDBClient = client
+		bulkFetcher = client
 	}
-	syncSvc := exercise.NewSyncService(exerciseStore, exerciseDBClient)
+	syncSvc := exercise.NewSyncService(exerciseStore, exerciseDBClient).
+		WithBulkImport(exerciseStore, bulkFetcher)
 
 	adminHandler := admin.NewHandler(userStore, workoutStore, syncSvc, aiRequestStore, compareMetricsStore, narrator, hub)
 
@@ -160,7 +164,8 @@ func main() {
 		adminGroup.GET("/workouts",            adminHandler.ListWorkouts)
 		adminGroup.GET("/workouts/:id",        adminHandler.GetWorkout)
 		adminGroup.PUT("/workouts/:id",        adminHandler.UpdateWorkout)
-		adminGroup.POST("/exercises/sync",     adminHandler.SyncExercises)
+		adminGroup.POST("/exercises/sync",        adminHandler.SyncExercises)
+		adminGroup.POST("/exercises/bulk-import", adminHandler.BulkImportExercises)
 		adminGroup.GET("/ai-requests",          adminHandler.ListAIRequests)
 		adminGroup.GET("/ai-compare-stats",     adminHandler.CompareStats)
 		adminGroup.GET("/compare/latest",       adminHandler.LatestSession)

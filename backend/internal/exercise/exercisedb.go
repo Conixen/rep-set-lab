@@ -43,12 +43,21 @@ func NewExerciseDBClient(apiKey string) *ExerciseDBClient {
 	}
 }
 
-// exerciseDBEntry holds the fields we need from the ExerciseDB v2 API.
-// Note: gifUrl was removed in the API v2 redesign. Images are now served via
-// GET /image?exerciseId={id}&resolution=180 (returns binary GIF data).
-// We store the id and return a backend proxy URL so the API key stays server-side.
+// exerciseDBEntry holds the minimal fields needed for a single GIF lookup.
 type exerciseDBEntry struct {
 	ID string `json:"id"`
+}
+
+// ExerciseDBExercise is a full exercise entry returned by the ExerciseDB v2 API,
+// used for bulk import.
+type ExerciseDBExercise struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	BodyPart    string `json:"bodyPart"`
+	Equipment   string `json:"equipment"`
+	Target      string `json:"target"`
+	Description string `json:"description"`
+	Difficulty  string `json:"difficulty"`
 }
 
 // FetchGIF searches ExerciseDB for the exercise by name and returns a backend
@@ -95,4 +104,49 @@ func (c *ExerciseDBClient) FetchGIF(ctx context.Context, exerciseName string) (s
 	// Return the backend proxy URL; the handler fetches the binary GIF from
 	// ExerciseDB with the API key and caches it in memory.
 	return "/api/v1/exercises/image/" + entries[0].ID, nil
+}
+
+// FetchByBodyPart paginates through all exercises for a given body part.
+// The free tier returns 10 per request; sleeps 150 ms between pages to respect rate limits.
+func (c *ExerciseDBClient) FetchByBodyPart(ctx context.Context, bodyPart string) ([]ExerciseDBExercise, error) {
+	var all []ExerciseDBExercise
+	offset := 0
+	const pageSize = 10
+
+	for {
+		if ctx.Err() != nil {
+			return all, ctx.Err()
+		}
+
+		endpoint := fmt.Sprintf("https://%s/exercises/bodyPart/%s?limit=%d&offset=%d",
+			exerciseDBHost, url.PathEscape(bodyPart), pageSize, offset)
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("X-RapidAPI-Key", c.apiKey)
+		req.Header.Set("X-RapidAPI-Host", exerciseDBHost)
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		var batch []ExerciseDBExercise
+		decodeErr := json.NewDecoder(resp.Body).Decode(&batch)
+		resp.Body.Close()
+		if decodeErr != nil {
+			return nil, decodeErr
+		}
+		if len(batch) == 0 {
+			break
+		}
+
+		all = append(all, batch...)
+		offset += len(batch)
+		time.Sleep(150 * time.Millisecond)
+	}
+
+	return all, nil
 }

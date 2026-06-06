@@ -35,6 +35,7 @@ type WorkoutStore interface {
 
 type ExerciseSyncer interface {
 	Sync(ctx context.Context) (exercise.SyncResult, error)
+	BulkImport(ctx context.Context) (exercise.BulkImportResult, error)
 }
 
 type AIRequestStore interface {
@@ -443,6 +444,24 @@ func (h *Handler) SyncExercises(c *gin.Context) {
 	if err != nil {
 		slog.Default().Error("exercise sync failed", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "sync failed"})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+// BulkImportExercises pulls all exercises from ExerciseDB by body part and upserts
+// them into the database. One-time operation; safe to re-run. Capped at 3 minutes.
+func (h *Handler) BulkImportExercises(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 3*time.Minute)
+	defer cancel()
+	result, err := h.syncer.BulkImport(ctx)
+	if err != nil {
+		if errors.Is(err, exercise.ErrBulkImportNotConfigured) {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "ExerciseDB API key not configured"})
+			return
+		}
+		slog.Default().Error("bulk import failed", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "bulk import failed"})
 		return
 	}
 	c.JSON(http.StatusOK, result)

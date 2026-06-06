@@ -57,6 +57,30 @@ func (s *ExerciseStore) Seed(ctx context.Context, exercises []*Exercise) error {
 	return nil
 }
 
+// BulkUpsert inserts or updates exercises from an external source (e.g. ExerciseDB bulk import).
+// On conflict by name it updates metadata and gif_url, but never clears existing aliases.
+func (s *ExerciseStore) BulkUpsert(ctx context.Context, exercises []*Exercise) error {
+	for _, e := range exercises {
+		if e.Aliases == nil {
+			e.Aliases = pq.StringArray{}
+		}
+		_, err := s.db.ExecContext(ctx, `
+			INSERT INTO exercises (name, description, muscle_group, difficulty, equipment, aliases, gif_url)
+			VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, ''))
+			ON CONFLICT (name) DO UPDATE SET
+				description  = EXCLUDED.description,
+				muscle_group = EXCLUDED.muscle_group,
+				difficulty   = EXCLUDED.difficulty,
+				equipment    = EXCLUDED.equipment,
+				gif_url      = COALESCE(EXCLUDED.gif_url, exercises.gif_url)
+		`, e.Name, e.Description, e.MuscleGroup, e.Difficulty, e.Equipment, e.Aliases, e.GifURL.String)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // UpdateMedia sets thumbnail_url and/or gif_url for an exercise.
 // An empty string leaves the existing value unchanged.
 func (s *ExerciseStore) UpdateMedia(ctx context.Context, id int64, thumbnailURL, gifURL string) error {
