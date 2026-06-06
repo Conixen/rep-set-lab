@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -91,5 +92,32 @@ func (s *ExerciseStore) UpdateMedia(ctx context.Context, id int64, thumbnailURL,
 			gif_url       = CASE WHEN $2 <> '' THEN $2 ELSE gif_url END
 		WHERE id = $3
 	`, thumbnailURL, gifURL, id)
+	return err
+}
+
+// GetGifBytes retrieves cached GIF bytes for an ExerciseDB exercise ID.
+// Returns nil, "", nil when no cached entry exists.
+func (s *ExerciseStore) GetGifBytes(ctx context.Context, exercisedbID string) ([]byte, string, error) {
+	var data []byte
+	var contentType string
+	err := s.db.QueryRowContext(ctx,
+		`SELECT gif_bytes, content_type FROM exercise_gif_cache WHERE exercisedb_id = $1`,
+		exercisedbID,
+	).Scan(&data, &contentType)
+	if err == sql.ErrNoRows {
+		return nil, "", nil
+	}
+	return data, contentType, err
+}
+
+// StoreGifBytes persists GIF bytes for an ExerciseDB exercise ID.
+// A conflict (already cached) is silently ignored — first write wins.
+func (s *ExerciseStore) StoreGifBytes(ctx context.Context, exercisedbID string, data []byte, contentType string) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO exercise_gif_cache (exercisedb_id, gif_bytes, content_type)
+		 VALUES ($1, $2, $3)
+		 ON CONFLICT (exercisedb_id) DO NOTHING`,
+		exercisedbID, data, contentType,
+	)
 	return err
 }

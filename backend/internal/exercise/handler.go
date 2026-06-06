@@ -3,6 +3,7 @@ package exercise
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"sync"
@@ -16,10 +17,15 @@ import (
 // with a max length of 32. ExerciseDB IDs are short numeric strings (e.g. "0027").
 var validExerciseID = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,32}$`)
 
+type gifCacheEntry struct {
+	data        []byte
+	contentType string
+}
+
 type Handler struct {
 	exercises     *database.ExerciseStore
 	exerciseDBKey string
-	imageCache    sync.Map // map[exerciseID string][]byte — in-memory GIF cache
+	imageCache    sync.Map // map[exerciseID string]gifCacheEntry — in-memory L1 cache
 	httpClient    *http.Client
 }
 
@@ -44,8 +50,9 @@ func (h *Handler) List(c *gin.Context) {
 	c.JSON(http.StatusOK, exercises)
 }
 
-// ProxyImage fetches an exercise GIF from ExerciseDB and caches it in memory.
-// The RapidAPI key is never exposed to the client.
+// ProxyImage serves exercise GIFs with a two-level cache: in-memory (L1) and
+// PostgreSQL (L2). ExerciseDB is only contacted on the very first request for
+// each image, after which the bytes are stored permanently in the DB.
 // Route: GET /api/v1/exercises/image/:exerciseid
 func (h *Handler) ProxyImage(c *gin.Context) {
 	exerciseID := c.Param("exerciseid")
@@ -54,9 +61,17 @@ func (h *Handler) ProxyImage(c *gin.Context) {
 		return
 	}
 
-	// Serve from cache on subsequent requests
+	// L1: in-memory cache (warm within the current process lifetime)
 	if cached, ok := h.imageCache.Load(exerciseID); ok {
-		c.Data(http.StatusOK, "image/gif", cached.([]byte))
+		entry := cached.(gifCacheEntry)
+		c.Data(http.StatusOK, entry.contentType, entry.data)
+		return
+	}
+
+	// L2: database cache (survives redeploys)
+	if dbData, dbCT, err := h.exercises.GetGifBytes(c.Request.Context(), exerciseID); err == nil && len(dbData) > 0 {
+		h.imageCache.Store(exerciseID, gifCacheEntry{data: dbData, contentType: dbCT})
+		c.Data(http.StatusOK, dbCT, dbData)
 		return
 	}
 
@@ -94,12 +109,17 @@ func (h *Handler) ProxyImage(c *gin.Context) {
 		return
 	}
 
-	// Cache and return
-	h.imageCache.Store(exerciseID, data)
-
 	contentType := resp.Header.Get("Content-Type")
 	if contentType == "" {
 		contentType = "image/gif"
 	}
+
+	entry := gifCacheEntry{data: data, contentType: contentType}
+	h.imageCache.Store(exerciseID, entry)
+
+	if err := h.exercises.StoreGifBytes(c.Request.Context(), exerciseID, data, contentType); err != nil {
+		slog.Default().Error("gif cache: failed to persist to db", "exercisedb_id", exerciseID, "error", err)
+	}
+
 	c.Data(http.StatusOK, contentType, data)
 }
