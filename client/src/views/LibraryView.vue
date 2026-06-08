@@ -14,8 +14,8 @@
         v-for="f in filters"
         :key="f"
         @click="activeFilter = f"
-        :class="activeFilter === f ? 'bg-violet-500 text-white' : 'bg-[#1e1e24] text-white/50'"
-        class="shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
+        :class="activeFilter === f ? 'bg-violet-500 text-white shadow-[0_0_14px_rgba(124,92,191,0.45)]' : 'bg-[#1e1e24] text-white/50'"
+        class="shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all"
       >
         {{ f }}
       </button>
@@ -29,16 +29,17 @@
         v-for="ex in pagedExercises"
         :key="ex.id"
         @click="selectedExercise = ex"
-        class="bg-[#1e1e24] rounded-2xl p-4 space-y-2 cursor-pointer active:scale-95 transition-transform"
+        class="bg-[#1e1e24] rounded-2xl p-4 space-y-2 cursor-pointer active:scale-95 transition-all ui-card exercise-card"
       >
         <img
           v-if="ex.gif_url || ex.thumbnail_url"
           :src="mediaUrl(ex.gif_url || ex.thumbnail_url)!"
           :alt="ex.name"
-          class="h-24 w-full object-cover rounded-xl bg-white/5"
+          class="h-24 w-full object-cover rounded-xl bg-white/5 animate-pulse"
+          @load="($event.target as HTMLImageElement).classList.remove('animate-pulse')"
         />
-        <div v-else class="h-24 bg-white/5 rounded-xl flex items-center justify-center text-white/20 text-xs">
-          No image
+        <div v-else class="h-24 bg-white/5 rounded-xl animate-pulse flex items-center justify-center">
+          <div class="w-8 h-8 rounded-full bg-white/10"></div>
         </div>
         <p class="font-semibold text-sm">{{ ex.name }}</p>
         <div class="flex flex-wrap gap-1">
@@ -50,7 +51,6 @@
       </div>
     </div>
 
-    <!-- Pagination -->
     <div v-if="totalPages > 1" class="flex items-center justify-between pt-2 pb-4">
       <button
         @click="page--"
@@ -68,14 +68,13 @@
     </div>
   </div>
 
-  <!-- Exercise detail popup -->
   <Teleport to="body">
     <div
       v-if="selectedExercise"
-      class="fixed inset-0 z-50 flex items-end justify-center bg-black/75 pb-6 px-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4"
       @click.self="selectedExercise = null"
     >
-      <div class="bg-[#1e1e24] rounded-2xl w-full max-w-sm relative overflow-hidden">
+      <div class="bg-[#1e1e24] rounded-2xl w-full max-w-sm relative overflow-hidden ui-card">
         <button
           @click="selectedExercise = null"
           class="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/40 text-white/50 hover:text-white text-lg flex items-center justify-center transition-colors"
@@ -158,6 +157,7 @@ const pagedExercises = computed(() => {
 
 watch([activeFilter, search], () => { page.value = 1 })
 
+
 onMounted(async () => {
   try {
     exercises.value = await api.get<Exercise[]>('/exercises')
@@ -168,3 +168,16 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.exercise-card {
+  border: 1px solid transparent;
+}
+.exercise-card:hover {
+  border-color: rgba(124, 92, 191, 0.5);
+  box-shadow:
+    0 0 20px rgba(124, 92, 191, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 4px 32px rgba(0, 0, 0, 0.5);
+}
+</style>

@@ -110,6 +110,40 @@ func (s *UserStore) ApproveUser(ctx context.Context, id int64) error {
 // ActivateAdmin sets status=active and role=admin for the given email.
 // Used by the bootstrap admin flow on startup. Safe to call when the user
 // is already active/admin — it is a no-op in that case.
+func (s *UserStore) UpdateUsername(ctx context.Context, id int64, username string) error {
+	result, err := s.db.ExecContext(ctx, `
+		UPDATE users SET username = $1, updated_at = NOW() WHERE id = $2
+	`, username, id)
+	if err != nil {
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+func (s *UserStore) UpdatePassword(ctx context.Context, id int64, passwordHash string) error {
+	result, err := s.db.ExecContext(ctx, `
+		UPDATE users SET password_hash = $1, token_version = token_version + 1, updated_at = NOW() WHERE id = $2
+	`, passwordHash, id)
+	if err != nil {
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
 func (s *UserStore) ActivateAdmin(ctx context.Context, email string) error {
 	_, err := s.db.ExecContext(ctx, `
 		UPDATE users SET status = 'active', role = 'admin', updated_at = NOW() WHERE email = $1

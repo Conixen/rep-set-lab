@@ -5,7 +5,6 @@
       <p class="text-sm text-white/60 mt-1">Run the same prompt through all active providers in parallel.</p>
     </div>
 
-    <!-- FORM -->
     <template v-if="!results">
       <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-4">
         <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Build your workout</p>
@@ -131,9 +130,7 @@
       </button>
     </template>
 
-    <!-- RESULTS -->
     <template v-else>
-      <!-- Summary bar -->
       <div class="grid grid-cols-3 gap-2 text-center text-xs">
         <div class="bg-[#1e1e24] rounded-xl p-3">
           <p class="text-white/40 mb-1">Fastest</p>
@@ -152,13 +149,11 @@
         </div>
       </div>
 
-      <!-- Provider cards -->
       <div class="space-y-4 lg:grid lg:grid-cols-3 lg:gap-4 lg:space-y-0">
         <div
           v-for="r in results" :key="r.provider"
           class="bg-[#1e1e24] rounded-2xl p-4 space-y-3"
         >
-          <!-- Header -->
           <div class="flex items-center justify-between">
             <span class="font-semibold capitalize text-sm">{{ providerLabel(r.provider) }}</span>
             <span
@@ -170,14 +165,12 @@
           <p v-if="r.error" class="text-red-400 text-xs break-words">{{ r.error }}</p>
 
           <template v-if="r.response">
-            <!-- Performance chips -->
             <div class="flex flex-wrap gap-1.5 text-xs">
               <span class="bg-white/5 text-white/50 px-2 py-1 rounded-full">{{ r.latency_ms }}ms</span>
               <span class="bg-white/5 text-white/50 px-2 py-1 rounded-full">{{ r.usage!.input_tokens }}↑ {{ r.usage!.output_tokens }}↓ tok</span>
               <span class="bg-white/5 text-white/50 px-2 py-1 rounded-full">${{ r.usage!.cost_usd.toFixed(4) }}</span>
             </div>
 
-            <!-- Quality metrics -->
             <div v-if="r.behavioral && r.library_match" class="space-y-1.5">
               <p class="text-xs text-white/30 uppercase tracking-widest">Quality metrics</p>
               <div class="grid grid-cols-2 gap-1.5 text-xs">
@@ -214,7 +207,6 @@
               </div>
             </div>
 
-            <!-- Workout preview -->
             <div>
               <p class="font-medium text-sm">{{ r.response.title }}</p>
               <p class="text-xs text-white/40 mt-0.5 line-clamp-2">{{ r.response.description }}</p>
@@ -234,7 +226,6 @@
         </div>
       </div>
 
-      <!-- Raw numbers table -->
       <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-3">
         <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Raw numbers</p>
         <div class="overflow-x-auto">
@@ -282,7 +273,6 @@
     </template>
   </div>
 
-  <!-- Workout modal (from compare result) -->
   <WorkoutModal
     v-if="modalResult?.response"
     :workout="modalResult.response"

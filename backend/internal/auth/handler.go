@@ -126,6 +126,10 @@ func (h *Handler) Login(c *gin.Context) {
 }
 
 func (h *Handler) issueToken(userID int64, username, role string, tokenVersion int) (string, error) {
+	return NewToken(h.jwtSecret, userID, username, role, tokenVersion)
+}
+
+func NewToken(secret string, userID int64, username, role string, tokenVersion int) (string, error) {
 	claims := &Claims{
 		UserID:       userID,
 		Username:     username,
@@ -136,7 +140,7 @@ func (h *Handler) issueToken(userID int64, username, role string, tokenVersion i
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
-	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(h.jwtSecret))
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
 }
 
 func sanitize(u *database.User) gin.H {

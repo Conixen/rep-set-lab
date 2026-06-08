@@ -27,7 +27,6 @@
         </div>
       </div>
 
-      <!-- XP card — full width with progress bar -->
       <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-2">
         <div class="flex justify-between items-baseline">
           <span class="text-white/50 text-sm">Total XP</span>

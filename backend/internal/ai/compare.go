@@ -20,12 +20,10 @@ import (
 
 const compareTimeout = 90 * time.Second
 
-// ExerciseLister is satisfied by database.ExerciseStore.
 type ExerciseLister interface {
 	List(ctx context.Context, muscleGroup string) ([]*database.Exercise, error)
 }
 
-// CompareMetricsLogger is satisfied by database.CompareMetricsStore.
 type CompareMetricsLogger interface {
 	Log(ctx context.Context, m *database.CompareMetric) error
 }
@@ -38,7 +36,6 @@ type ProviderResult struct {
 	LatencyMs    int64              `json:"latency_ms"`
 	Behavioral   *BehavioralMetrics `json:"behavioral,omitempty"`
 	LibraryMatch *LibraryMatch      `json:"library_match,omitempty"`
-	// GradeResult intentionally excluded from JSON — admin-only via /admin/ai-compare-stats
 }
 
 type CompareHandler struct {
@@ -110,8 +107,6 @@ func (h *CompareHandler) Compare(c *gin.Context) {
 		Environment:          req.Environment,
 		Language:             req.Language,
 		SystemPromptOverride: compareSystemPrompt,
-		// AvailableExercises intentionally omitted — library match scoring measures
-		// how well models pick known exercises without being told what they are.
 	}
 
 	sessionID := newSessionID()
@@ -150,7 +145,7 @@ func (h *CompareHandler) Compare(c *gin.Context) {
 				lm := computeLibraryMatch(resp, libraryLookup)
 				res.LibraryMatch = &lm
 
-				// Grade this workout with Groq (neutral third-party evaluator).
+				// Grade this workout with Groq
 				if h.grader != nil {
 					var gradeErr error
 					gradeResult, gradeErr = h.grader.GradeWorkout(ctx, aiReq, resp)

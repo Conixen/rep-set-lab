@@ -2,7 +2,6 @@
   <div class="p-5 space-y-5">
     <h1 class="text-2xl font-bold pt-2">Admin</h1>
 
-    <!-- Tab switcher -->
     <div class="flex gap-2 bg-white/5 p-1 rounded-xl">
       <button
         v-for="t in tabList" :key="t.key"
@@ -12,12 +11,10 @@
       >{{ t.label }}</button>
     </div>
 
-    <!-- ── AI Requests ── -->
     <template v-if="activeTab === 'ai'">
       <div v-if="aiLoading" class="text-white/40 text-sm text-center py-8">Loading…</div>
       <template v-else-if="aiData">
 
-        <!-- Per-model cards -->
         <div class="space-y-2">
           <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Per model</p>
           <div class="flex gap-3 overflow-x-auto pb-1">
@@ -65,7 +62,6 @@
           </div>
         </div>
 
-        <!-- Request log -->
         <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-3">
           <div class="flex items-center justify-between">
             <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">
@@ -108,7 +104,6 @@
             </table>
           </div>
 
-          <!-- Pagination -->
           <div class="flex items-center justify-between pt-2">
             <button
               @click="aiPage--; loadAI()"
@@ -127,10 +122,8 @@
       <p v-if="aiError" class="text-red-400 text-xs">{{ aiError }}</p>
     </template>
 
-    <!-- ── Compare Analytics ── -->
     <template v-if="activeTab === 'compare'">
 
-      <!-- Latest session -->
       <div class="space-y-2">
         <div class="flex items-center justify-between">
           <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Latest session</p>
@@ -144,13 +137,11 @@
             v-for="row in latestSession" :key="row.provider"
             class="bg-[#1e1e24] rounded-2xl p-4 shrink-0 w-60 space-y-3"
           >
-            <!-- Header -->
             <div class="flex items-center justify-between">
               <p class="text-sm font-semibold capitalize truncate">{{ row.provider }}</p>
               <span class="text-xs text-white/30">{{ row.environment }}</span>
             </div>
 
-            <!-- Hero: Quality / Tokens / Cost -->
             <div class="grid grid-cols-3 gap-2">
               <div class="bg-white/5 rounded-xl p-2 text-center">
                 <p class="text-[10px] text-white/40 mb-1">Quality</p>
@@ -167,7 +158,6 @@
               </div>
             </div>
 
-            <!-- Prompt sensitivity -->
             <div class="space-y-1">
               <p class="text-[10px] text-white/30 font-semibold tracking-widest uppercase">Prompt sensitivity</p>
               <div class="flex gap-2">
@@ -184,7 +174,6 @@
               </div>
             </div>
 
-            <!-- Consistency -->
             <div class="space-y-1">
               <p class="text-[10px] text-white/30 font-semibold tracking-widest uppercase">Consistency</p>
               <div class="flex gap-2">
@@ -199,7 +188,6 @@
               </div>
             </div>
 
-            <!-- Expandable details -->
             <button
               @click="toggleExpand(row.provider)"
               class="w-full text-[10px] text-white/30 hover:text-white/50 transition-colors text-left"
@@ -258,7 +246,6 @@
         <p v-if="latestError" class="text-red-400 text-xs">{{ latestError }}</p>
       </div>
 
-      <!-- Historical averages -->
       <div v-if="compareLoading" class="text-white/40 text-sm text-center py-8">Loading…</div>
       <template v-else-if="compareAvgs && compareAvgs.length">
         <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-3">
@@ -296,7 +283,6 @@
             </table>
           </div>
 
-          <!-- Expandable: detailed breakdown -->
           <button @click="showDetailedAvgs = !showDetailedAvgs" class="text-[10px] text-white/30 hover:text-white/50 transition-colors">
             {{ showDetailedAvgs ? '▾ Hide detailed breakdown' : '▸ Detailed breakdown' }}
           </button>
@@ -342,7 +328,6 @@
           </template>
         </div>
 
-        <!-- Narrative analysis -->
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">AI narrative analysis</p>
@@ -380,7 +365,6 @@
       <p v-if="compareError" class="text-red-400 text-xs">{{ compareError }}</p>
     </template>
 
-    <!-- ── Users ── -->
     <template v-if="activeTab === 'users'">
       <div v-if="usersLoading" class="text-white/40 text-sm text-center py-8">Loading…</div>
       <div v-else-if="!users.length" class="text-white/40 text-sm text-center py-8">No users found.</div>
@@ -423,7 +407,6 @@
       <p v-if="usersError" class="text-red-400 text-xs">{{ usersError }}</p>
     </template>
 
-    <!-- ── Exercises ── -->
     <template v-if="activeTab === 'exercises'">
       <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-4">
         <div class="flex items-center justify-between">
@@ -440,10 +423,9 @@
 
         <p class="text-xs text-white/40 leading-relaxed">
           Fetches animated GIF URLs from ExerciseDB for any exercise missing one.
-          Safe to run multiple times — skips exercises that already have a GIF.
+          Skips exercises that already have a GIF.
         </p>
 
-        <!-- Bulk import -->
         <div class="border-t border-white/10 pt-4 space-y-3">
           <div class="flex items-center justify-between">
             <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Bulk import</p>
@@ -457,7 +439,7 @@
             </button>
           </div>
           <p class="text-xs text-white/40 leading-relaxed">
-            Pulls ~1 340 exercises from ExerciseDB (back, chest, shoulders, arms, legs, core, calves, wrists) and upserts them into the library. Takes ~30 s. Safe to re-run.
+            Pulls relevant exercises from ExerciseDB (back, chest, shoulders, arms, legs, core, calves, wrists).
           </p>
           <div v-if="bulkResult" class="grid grid-cols-2 gap-2">
             <div class="bg-white/5 rounded-xl p-3 text-center">
@@ -472,7 +454,6 @@
           <p v-if="bulkError" class="text-red-400 text-xs">{{ bulkError }}</p>
         </div>
 
-        <!-- Result -->
         <div v-if="syncResult" class="space-y-3 pt-1">
           <div class="grid grid-cols-4 gap-2">
             <div class="bg-white/5 rounded-xl p-3 text-center">
@@ -527,7 +508,6 @@ const tabList: { key: 'ai' | 'compare' | 'users' | 'exercises'; label: string }[
 ]
 const activeTab = ref<'ai' | 'compare' | 'users' | 'exercises'>('ai')
 
-// ── AI Requests ──
 interface AIRequest {
   id: number
   username: string
@@ -593,7 +573,6 @@ function handleDownloadCSV() {
   downloadCSV(headers, rows, `ai-requests-page-${aiPage.value}.csv`)
 }
 
-// ── Users ──
 interface User {
   id:     number
   username: string
@@ -647,7 +626,6 @@ async function toggleRole(u: User) {
   }
 }
 
-// ── Compare Analytics ──
 interface SessionRow {
   provider: string
   muscle_group: string
@@ -814,7 +792,6 @@ onMounted(() => {
   loadLatestSession()
 })
 
-// ── Exercises ──
 interface SyncResult {
   total:    number
   skipped:  number

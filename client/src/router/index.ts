@@ -6,9 +6,10 @@ import LibraryView from '../views/LibraryView.vue'
 import AiView      from '../views/AiView.vue'
 import CompareView from '../views/CompareView.vue'
 import HistoryView from '../views/HistoryView.vue'
-import ProfileView from '../views/ProfileView.vue'
-import AdminView   from '../views/AdminView.vue'
-import PendingView from '../views/PendingView.vue'
+import ProfileView  from '../views/ProfileView.vue'
+import SettingsView from '../views/SettingsView.vue'
+import AdminView    from '../views/AdminView.vue'
+import PendingView  from '../views/PendingView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -21,6 +22,7 @@ const router = createRouter({
     { path: '/compare',  component: CompareView },
     { path: '/history',  component: HistoryView },
     { path: '/profile',  component: ProfileView },
+    { path: '/settings', component: SettingsView },
     { path: '/admin',    component: AdminView,   meta: { admin: true } },
   ],
 })

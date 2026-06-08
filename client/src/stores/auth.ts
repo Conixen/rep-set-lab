@@ -6,25 +6,21 @@ interface AuthResponse {
   token: string
 }
 
-function decodeRole(token: string): string {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]))
-    return payload.role ?? 'user'
-  } catch {
-    return 'user'
-  }
+function decodePayload(token: string): Record<string, any> {
+  try { return JSON.parse(atob(token.split('.')[1])) } catch { return {} }
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref<string | null>(localStorage.getItem('token'))
-  const role  = ref<string>(token.value ? decodeRole(token.value) : 'user')
+  const token    = ref<string | null>(localStorage.getItem('token'))
+  const payload  = ref<Record<string, any>>(token.value ? decodePayload(token.value) : {})
 
   const isLoggedIn = computed(() => !!token.value)
-  const isAdmin    = computed(() => role.value === 'admin')
+  const isAdmin    = computed(() => payload.value.role === 'admin')
+  const username   = computed<string>(() => payload.value.username ?? '')
 
   function setToken(t: string) {
-    token.value = t
-    role.value  = decodeRole(t)
+    token.value   = t
+    payload.value = decodePayload(t)
     localStorage.setItem('token', t)
   }
 
@@ -39,10 +35,10 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function logout() {
-    token.value = null
-    role.value  = 'user'
+    token.value   = null
+    payload.value = {}
     localStorage.removeItem('token')
   }
 
-  return { token, role, isLoggedIn, isAdmin, login, register, logout }
+  return { token, isLoggedIn, isAdmin, username, login, register, logout }
 })

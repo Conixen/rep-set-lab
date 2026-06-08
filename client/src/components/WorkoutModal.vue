@@ -10,7 +10,6 @@
         </div>
         <div v-else class="bg-[#1e1e24] rounded-2xl w-full max-w-lg overflow-hidden">
 
-          <!-- Header -->
           <div class="flex items-start justify-between p-5 pb-3">
             <div class="flex-1 min-w-0 pr-3">
               <h2 class="text-lg font-bold">{{ workout.title }}</h2>
@@ -23,14 +22,12 @@
             >✕</button>
           </div>
 
-          <!-- Badges -->
           <div class="flex gap-2 px-5 pb-4 flex-wrap text-xs">
             <span v-if="provider" class="bg-violet-500/20 text-violet-400 px-2 py-1 rounded-full capitalize">{{ provider }}</span>
             <span v-if="durationMinutes" class="bg-white/5 text-white/40 px-2 py-1 rounded-full">{{ durationMinutes }} min</span>
             <span v-if="xpToEarn > 0" class="bg-white/5 text-white/40 px-2 py-1 rounded-full">{{ xpToEarn }} XP on completion</span>
           </div>
 
-          <!-- Exercises -->
           <div class="px-5 pb-5 space-y-5">
             <section v-if="workout.warm_up?.length">
               <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3">Warm Up</p>
@@ -127,7 +124,6 @@
             </section>
           </div>
 
-          <!-- XP banner (shown after completing) -->
           <div v-if="xpResult" class="mx-5 mb-4 bg-violet-500/20 border border-violet-500/30 rounded-2xl p-4 text-center space-y-0.5">
             <p class="text-violet-400 font-bold text-xl">+{{ xpResult.xp_earned }} XP</p>
             <p class="text-white/60 text-sm">
@@ -137,9 +133,7 @@
 
           <p v-if="actionError" class="px-5 pb-3 text-red-400 text-xs">{{ actionError }}</p>
 
-          <!-- Actions -->
           <div class="p-5 pt-0 flex gap-2">
-            <!-- Not saved yet (from compare) -->
             <template v-if="mode === 'compare-unsaved'">
               <button
                 @click="handleSave"
@@ -148,12 +142,10 @@
               >{{ saving ? 'Saving…' : 'Save workout' }}</button>
             </template>
 
-            <!-- Saved from compare (just saved) -->
             <template v-else-if="mode === 'compare-saved'">
               <div class="flex-1 bg-green-500/10 text-green-400 py-3 rounded-2xl text-sm font-semibold text-center">Saved ✓</div>
             </template>
 
-            <!-- In DB, not completed (from AI or Saved tab) -->
             <template v-else-if="mode === 'saved' && !xpResult">
               <template v-if="!confirmingDelete">
                 <div class="flex-1 bg-green-500/10 text-green-400 py-3 rounded-2xl text-sm font-semibold text-center">Saved ✓</div>
@@ -182,7 +174,6 @@
               </template>
             </template>
 
-            <!-- Completed -->
             <template v-else-if="mode === 'completed' || xpResult">
               <div class="flex-1 bg-white/5 text-white/40 py-3 rounded-2xl text-sm font-semibold text-center">Completed ✓</div>
             </template>

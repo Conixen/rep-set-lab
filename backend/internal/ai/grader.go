@@ -177,8 +177,7 @@ Provider aggregate metrics:
 	return sb.String()
 }
 
-// normalizeGrade returns the single uppercase letter from {A,B,C,D,F}, or "" for anything else.
-// Strips modifier suffixes like "A+" or "B-" that the LLM occasionally adds despite instructions.
+// returns {A,B,C,D,F}, or "" for anything else.
 func normalizeGrade(s string) string {
 	s = strings.TrimSpace(s)
 	if s == "" {

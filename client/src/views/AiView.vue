@@ -2,7 +2,6 @@
   <div class="p-5 space-y-5">
     <h1 class="text-2xl font-bold pt-2">AI Coach</h1>
 
-    <!-- FORM -->
     <template v-if="!result">
       <select
         v-model="selectedProvider"
@@ -124,16 +123,16 @@
           </div>
           <div v-if="showPromptTip" class="bg-white/5 rounded-xl px-4 py-3 text-xs text-white/50 space-y-1">
             <p class="text-white/70 font-medium mb-1">Add any extra context for a better workout:</p>
-            <p>• Bad lower back but can still row — just no deadlifts</p>
+            <p>• Bad lower back but can still row, just no deadlifts</p>
             <p>• Only dumbbells and a pull-up bar at home</p>
             <p>• No barbell at my gym, cables and dumbbells only</p>
             <p>• Avoid all pressing movements, prefer pulls today</p>
-            <p>• Powerlifting meet next month — heavy compounds only</p>
+            <p>• Powerlifting meet next month, heavy compounds only</p>
           </div>
           <textarea
             v-model="prompt"
             rows="3"
-            placeholder="e.g. bad lower back but can still row — just no deadlifts, only dumbbells at home..."
+            placeholder="e.g. bad lower back but can still row, just no deadlifts, only dumbbells at home..."
             @focus="scrollFieldIntoView($event)"
             class="w-full bg-white/5 rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500 resize-none"
           />
@@ -155,7 +154,6 @@
       </button>
     </template>
 
-    <!-- RESULT -->
     <template v-else>
       <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-5">
         <div>
@@ -219,7 +217,6 @@
         </section>
       </div>
 
-      <!-- XP earned banner -->
       <div v-if="xpResult" class="bg-violet-500/20 border border-violet-500/30 rounded-2xl p-4 text-center space-y-1">
         <p class="text-violet-400 font-bold text-xl">+{{ xpResult.xp_earned }} XP</p>
         <p class="text-white/60 text-sm">
@@ -248,7 +245,6 @@
     </template>
   </div>
 
-  <!-- Full workout modal -->
   <WorkoutModal
     v-if="showModal && result"
     :workout="result.response"
