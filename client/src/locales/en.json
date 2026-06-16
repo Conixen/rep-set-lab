@@ -1,0 +1,243 @@
+{
+  "ai": {
+    "title": "AI Coach",
+    "buildWorkout": "Build your workout",
+    "trainingEnvironment": "Training environment",
+    "muscleGroups": {
+      "label": "Muscle groups",
+      "hint": "(select one or more)",
+      "chest": "Chest",
+      "back": "Back",
+      "legs": "Legs",
+      "shoulders": "Shoulders",
+      "arms": "Arms",
+      "core": "Core",
+      "calves": "Calves",
+      "wrists": "Wrists"
+    },
+    "duration": {
+      "label": "Duration",
+      "placeholder": "Or enter minutes manually..."
+    },
+    "experience": {
+      "label": "Experience level",
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "goal": {
+      "label": "Goal",
+      "muscleGain": "Muscle gain",
+      "fatLoss": "Fat loss",
+      "strength": "Strength",
+      "endurance": "Endurance"
+    },
+    "injuries": {
+      "label": "Injuries / limitations",
+      "optional": "(optional)",
+      "placeholder": "e.g. bad knees, shoulder impingement..."
+    },
+    "workoutLanguage": {
+      "label": "Workout language",
+      "note": "Applies to the generated workout content, not the app interface."
+    },
+    "extraNotes": {
+      "label": "Extra notes",
+      "optional": "(optional)",
+      "placeholder": "e.g. bad lower back but can still row, just no deadlifts, only dumbbells at home...",
+      "tipTitle": "Add any extra context for a better workout:",
+      "tip1": "Bad lower back but can still row, just no deadlifts",
+      "tip2": "Only dumbbells and a pull-up bar at home",
+      "tip3": "No barbell at my gym, cables and dumbbells only",
+      "tip4": "Avoid all pressing movements, prefer pulls today",
+      "tip5": "Powerlifting meet next month, heavy compounds only"
+    },
+    "generate": "Generate",
+    "generating": "Generating…",
+    "workout": "workout",
+    "warmUp": "Warm Up",
+    "main": "Main",
+    "tips": "Tips",
+    "newWorkout": "New Workout",
+    "viewFull": "View full ▶",
+    "complete": "Complete",
+    "completing": "Saving…",
+    "levelUp": "Level up! You are now level {level}",
+    "totalXp": "Total: {total_xp} XP · Level {level}"
+  },
+  "environments": {
+    "gym": "🏋️ Gym",
+    "home": "🏠 Home",
+    "outdoor": "🌳 Outdoor"
+  },
+  "compare": {
+    "title": "Provider Compare",
+    "subtitle": "Run the same prompt through all active providers in parallel.",
+    "buildWorkout": "Build your workout",
+    "injuries": "Injuries / limitations",
+    "customPrompt": {
+      "label": "Custom prompt",
+      "optional": "(optional)",
+      "placeholder": "e.g. Focus on compound movements, keep rest periods short..."
+    },
+    "querying": "Querying all providers… up to 90s",
+    "compareBtn": "Compare all providers",
+    "fastest": "Fastest",
+    "cheapest": "Cheapest",
+    "bestMatch": "Best library match",
+    "qualityMetrics": "Quality metrics",
+    "libraryMatch": "Library match",
+    "estDuration": "Est. duration",
+    "structure": "Structure",
+    "contentRichness": "Content richness",
+    "exercisesWithNotes": "exercises with notes",
+    "rawNumbers": "Raw numbers",
+    "newComparison": "New comparison",
+    "viewWorkout": "View workout ▶",
+    "error": "Error",
+    "validJson": "Valid JSON",
+    "yes": "Yes",
+    "no": "No",
+    "table": {
+      "provider": "Provider",
+      "latency": "Latency",
+      "inTok": "In tok",
+      "outTok": "Out tok",
+      "cost": "Cost",
+      "library": "Library",
+      "estMin": "Est. min",
+      "emoji": "Emoji",
+      "equipViol": "Equip. ✗",
+      "validJson": "Valid JSON"
+    }
+  },
+  "library": {
+    "title": "Exercise library",
+    "searchPlaceholder": "Search exercises...",
+    "loading": "Loading…",
+    "noImage": "No image",
+    "prev": "← Prev",
+    "next": "Next →",
+    "filters": {
+      "all": "All",
+      "back": "back",
+      "chest": "chest",
+      "shoulders": "shoulders",
+      "arms": "arms",
+      "legs": "legs",
+      "core": "core",
+      "lowerLegs": "lower legs",
+      "lowerArms": "lower arms"
+    }
+  },
+  "tags": {
+    "difficulty": {
+      "beginner": "beginner",
+      "intermediate": "intermediate",
+      "advanced": "advanced"
+    },
+    "equipment": {
+      "barbell": "barbell",
+      "dumbbells": "dumbbells",
+      "none": "none",
+      "cable_machine": "cable machine",
+      "pull_up_bar": "pull-up bar",
+      "leg_press_machine": "leg press machine",
+      "machine": "machine",
+      "machine_or_bodyweight": "machine or bodyweight",
+      "dip_bars": "dip bars",
+      "ab_wheel": "ab wheel",
+      "none_or_plate": "none or plate",
+      "none_or_dumbbell": "none or dumbbell"
+    },
+    "muscle": {
+      "chest": "chest",
+      "back": "back",
+      "legs": "legs",
+      "shoulders": "shoulders",
+      "arms": "arms",
+      "core": "core",
+      "lower_legs": "lower legs",
+      "lower_arms": "lower arms"
+    }
+  },
+  "home": {
+    "totalXp": "Total XP",
+    "nextLevel": "Next level: {xp} XP",
+    "xpToGo": "{xp} XP to go",
+    "thisWeek": "This week",
+    "sessionsLogged": "Sessions logged",
+    "recentWorkouts": "Recent Workouts",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "greetings": {
+      "morning": ["Good morning", "Rise and grind", "Morning, champ"],
+      "afternoon": ["Good afternoon", "Keep pushing", "Afternoon check-in"],
+      "evening": ["Good evening", "Day's not done yet", "Evening session"],
+      "night": ["Still grinding", "Burning the midnight oil", "Late night hustle"]
+    }
+  },
+  "history": {
+    "title": "History",
+    "tabHistory": "History",
+    "tabSaved": "Saved",
+    "noWorkouts": "No workouts generated yet.",
+    "noCompleted": "No completed workouts yet.",
+    "noSaved": "No saved workouts. Generate one in AI or save from Compare.",
+    "completedBadge": "Completed",
+    "savedBadge": "Saved",
+    "viewWorkout": "View workout",
+    "progressDelta": "↑ {min} min more than last {muscle} session"
+  },
+  "profile": {
+    "title": "Profile",
+    "level": "Level",
+    "completed": "Completed",
+    "workouts": "Workouts",
+    "totalXp": "Total XP",
+    "nextLevel": "Next level: {xp} XP",
+    "xpProgress": "{total} / {next} XP · {toGo} to go",
+    "logout": "Log out"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": {
+      "label": "Language"
+    },
+    "tabs": {
+      "username": "Username",
+      "password": "Password"
+    },
+    "username": {
+      "title": "Change username",
+      "placeholder": "New username",
+      "save": "Save username"
+    },
+    "password": {
+      "title": "Change password",
+      "currentPlaceholder": "Current password",
+      "newPlaceholder": "New password",
+      "save": "Save password"
+    }
+  },
+  "modal": {
+    "warmUp": "Warm Up",
+    "main": "Main",
+    "tips": "Tips",
+    "noData": "No workout data.",
+    "rest": "Rest {seconds}s",
+    "saveWorkout": "Save workout",
+    "saving": "Saving…",
+    "saved": "Saved ✓",
+    "completing": "Completing…",
+    "complete": "Complete · {xp} XP",
+    "completed": "Completed ✓",
+    "removeConfirm": "Remove workout?",
+    "yesDelete": "Yes, delete",
+    "cancel": "Cancel",
+    "close": "Close",
+    "levelUp": "Level up! Level {level}",
+    "totalXp": "Total: {total_xp} XP · Level {level}",
+    "xpOnCompletion": "{xp} XP on completion"
+  }
+}

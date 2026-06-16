@@ -1,27 +1,27 @@
 <template>
   <div class="p-5 space-y-4">
-    <h1 class="text-2xl font-bold pt-2">Exercise library</h1>
+    <h1 class="text-2xl font-bold pt-2">{{ t('library.title') }}</h1>
 
     <input
       v-model="search"
       type="text"
-      placeholder="Search exercises..."
+      :placeholder="t('library.searchPlaceholder')"
       class="w-full bg-[#1e1e24] rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
     />
 
     <div class="flex gap-2 overflow-x-auto pb-1">
       <button
-        v-for="f in filters"
-        :key="f"
-        @click="activeFilter = f"
-        :class="activeFilter === f ? 'bg-violet-500 text-white shadow-[0_0_14px_rgba(124,92,191,0.45)]' : 'bg-[#1e1e24] text-white/50'"
+        v-for="f in filterOptions"
+        :key="f.key"
+        @click="activeFilter = f.key"
+        :class="activeFilter === f.key ? 'bg-violet-500 text-white shadow-[0_0_14px_rgba(124,92,191,0.45)]' : 'bg-[#1e1e24] text-white/50'"
         class="shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all"
       >
-        {{ f }}
+        {{ f.label }}
       </button>
     </div>
 
-    <div v-if="loading" class="text-white/40 text-sm text-center py-8">Loading…</div>
+    <div v-if="loading" class="text-white/40 text-sm text-center py-8">{{ t('library.loading') }}</div>
     <p v-else-if="error" class="text-red-400 text-xs">{{ error }}</p>
 
     <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -43,9 +43,9 @@
         </div>
         <p class="font-semibold text-sm">{{ ex.name }}</p>
         <div class="flex flex-wrap gap-1">
-          <span v-for="tag in [ex.muscle_group, ex.difficulty, ex.equipment].filter(Boolean)" :key="tag"
+          <span v-for="tag in visibleTags(ex)" :key="tag.raw"
                 class="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full">
-            {{ tag }}
+            {{ tag.label }}
           </span>
         </div>
       </div>
@@ -57,14 +57,14 @@
         :disabled="page === 1"
         class="px-4 py-2 rounded-xl bg-[#1e1e24] text-sm font-medium transition-colors disabled:opacity-30"
         :class="page > 1 ? 'text-white hover:bg-white/10' : 'text-white/30'"
-      >← Prev</button>
+      >{{ t('library.prev') }}</button>
       <span class="text-sm text-white/40">{{ page }} / {{ totalPages }}</span>
       <button
         @click="page++"
         :disabled="page === totalPages"
         class="px-4 py-2 rounded-xl bg-[#1e1e24] text-sm font-medium transition-colors disabled:opacity-30"
         :class="page < totalPages ? 'text-white hover:bg-white/10' : 'text-white/30'"
-      >Next →</button>
+      >{{ t('library.next') }}</button>
     </div>
   </div>
 
@@ -88,7 +88,7 @@
           class="w-full rounded-t-2xl bg-white/5"
         />
         <div v-else class="h-48 bg-white/5 rounded-t-2xl flex items-center justify-center text-white/20 text-sm">
-          No image
+          {{ t('library.noImage') }}
         </div>
 
         <div class="p-4 space-y-3">
@@ -96,10 +96,10 @@
 
           <div class="flex flex-wrap gap-1.5">
             <span
-              v-for="tag in [selectedExercise.muscle_group, selectedExercise.difficulty, selectedExercise.equipment].filter(Boolean)"
-              :key="tag"
+              v-for="tag in visibleTags(selectedExercise)"
+              :key="tag.raw"
               class="text-xs bg-violet-500/20 text-violet-400 px-2.5 py-1 rounded-full"
-            >{{ tag }}</span>
+            >{{ tag.label }}</span>
           </div>
 
           <p v-if="selectedExercise.description" class="text-sm text-white/60 leading-relaxed">
@@ -113,9 +113,12 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api/client'
 import { toMessage } from '../utils/error'
 import { mediaUrl } from '../utils/mediaUrl'
+
+const { t, te } = useI18n()
 
 interface Exercise {
   id:            number
@@ -138,7 +141,42 @@ const loading          = ref(true)
 const error            = ref('')
 const selectedExercise = ref<Exercise | null>(null)
 
-const filters = ['All', 'back', 'chest', 'shoulders', 'arms', 'legs', 'core', 'lower legs', 'lower arms']
+const filterKeys = ['All', 'back', 'chest', 'shoulders', 'arms', 'legs', 'core', 'lower legs', 'lower arms']
+
+const filterKeyToI18n: Record<string, string> = {
+  'All':        'library.filters.all',
+  'back':       'library.filters.back',
+  'chest':      'library.filters.chest',
+  'shoulders':  'library.filters.shoulders',
+  'arms':       'library.filters.arms',
+  'legs':       'library.filters.legs',
+  'core':       'library.filters.core',
+  'lower legs': 'library.filters.lowerLegs',
+  'lower arms': 'library.filters.lowerArms',
+}
+
+const filterOptions = computed(() =>
+  filterKeys.map(key => ({ key, label: t(filterKeyToI18n[key]) }))
+)
+
+function translateTag(raw: string): string {
+  const normalized = raw.toLowerCase().replace(/ /g, '_').replace(/-/g, '_')
+  const candidates = [
+    `tags.difficulty.${normalized}`,
+    `tags.equipment.${normalized}`,
+    `tags.muscle.${normalized}`,
+  ]
+  for (const key of candidates) {
+    if (te(key)) return t(key)
+  }
+  return raw
+}
+
+function visibleTags(ex: Exercise) {
+  return [ex.muscle_group, ex.difficulty, ex.equipment]
+    .filter(Boolean)
+    .map(raw => ({ raw, label: translateTag(raw) }))
+}
 
 const filteredExercises = computed(() =>
   exercises.value.filter(e => {
@@ -156,7 +194,6 @@ const pagedExercises = computed(() => {
 })
 
 watch([activeFilter, search], () => { page.value = 1 })
-
 
 onMounted(async () => {
   try {

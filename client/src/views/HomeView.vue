@@ -10,13 +10,13 @@
       </div>
     </div>
 
-    <div v-if="loading" class="text-white/40 text-sm text-center py-8">Loading…</div>
+    <div v-if="loading" class="text-white/40 text-sm text-center py-8">{{ t('library.loading') }}</div>
 
     <template v-else>
       <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-2 ui-card">
         <div class="flex justify-between items-baseline">
-          <span class="text-white/50 text-sm">Total XP</span>
-          <span class="text-white/40 text-xs">Next level: {{ stats?.next_level_xp ?? '—' }} XP</span>
+          <span class="text-white/50 text-sm">{{ t('home.totalXp') }}</span>
+          <span class="text-white/40 text-xs">{{ t('home.nextLevel', { xp: stats?.next_level_xp ?? '—' }) }}</span>
         </div>
         <div class="flex items-baseline gap-1.5">
           <span class="text-2xl font-bold">{{ stats?.total_xp ?? 0 }}</span>
@@ -27,25 +27,25 @@
             <span v-if="xpPercent > 2" class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-2.5 h-2.5 rounded-full bg-violet-400 shadow-[0_0_6px_rgba(167,139,250,0.9)]"></span>
           </div>
         </div>
-        <p class="text-xs text-white/30 text-right">{{ xpToNext }} XP to go</p>
+        <p class="text-xs text-white/30 text-right">{{ t('home.xpToGo', { xp: xpToNext }) }}</p>
       </div>
 
       <div>
-        <p class="text-xs text-white/40 font-semibold tracking-widest uppercase mb-3">This week</p>
+        <p class="text-xs text-white/40 font-semibold tracking-widest uppercase mb-3">{{ t('home.thisWeek') }}</p>
         <div class="grid grid-cols-2 gap-3">
           <div class="bg-[#1e1e24] rounded-2xl p-4 text-center ui-card">
             <p class="text-2xl font-bold">{{ stats?.workouts_completed ?? '—' }}</p>
-            <p class="text-xs text-white/40 mt-1">Sessions logged</p>
+            <p class="text-xs text-white/40 mt-1">{{ t('home.sessionsLogged') }}</p>
           </div>
           <div class="bg-[#1e1e24] rounded-2xl p-4 text-center ui-card">
             <p class="text-2xl font-bold text-violet-400">{{ stats?.total_xp ?? '—' }}</p>
-            <p class="text-xs text-white/40 mt-1">Total XP</p>
+            <p class="text-xs text-white/40 mt-1">{{ t('home.totalXp') }}</p>
           </div>
         </div>
       </div>
 
       <div v-if="recentWorkouts.length">
-        <p class="text-xs text-white/40 font-semibold tracking-widest uppercase mb-3">Recent Workouts</p>
+        <p class="text-xs text-white/40 font-semibold tracking-widest uppercase mb-3">{{ t('home.recentWorkouts') }}</p>
         <div class="space-y-3">
           <div
             v-for="w in recentWorkouts"
@@ -75,27 +75,22 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api/client'
 import { toMessage } from '../utils/error'
 
 const router = useRouter()
+const { t, tm, locale } = useI18n()
 
-const greetings: Record<string, string[]> = {
-  morning:   ['Good morning', 'Rise and grind', 'Morning, champ'],
-  afternoon: ['Good afternoon', 'Keep pushing', 'Afternoon check-in'],
-  evening:   ['Good evening', "Day's not done yet", 'Evening session'],
-  night:     ['Still grinding', 'Burning the midnight oil', 'Late night hustle'],
-}
-function getGreeting(): string {
+const greeting = computed(() => {
   const h = new Date().getHours()
   const key = h >= 5 && h < 12 ? 'morning'
             : h >= 12 && h < 17 ? 'afternoon'
             : h >= 17 && h < 21 ? 'evening'
             : 'night'
-  const list = greetings[key]
+  const list = tm(`home.greetings.${key}`) as string[]
   return list[Math.floor(Math.random() * list.length)]
-}
-const greeting = getGreeting()
+})
 
 interface Stats {
   username:           string
@@ -126,9 +121,9 @@ function relativeDate(completedAt: NullTime | null): string {
   const d    = new Date(completedAt.Time)
   const now  = new Date()
   const diff = Math.floor((now.getTime() - d.getTime()) / 86_400_000)
-  if (diff === 0) return 'Today'
-  if (diff === 1) return 'Yesterday'
-  return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+  if (diff === 0) return t('home.today')
+  if (diff === 1) return t('home.yesterday')
+  return d.toLocaleDateString(locale.value === 'sv' ? 'sv-SE' : 'en-US', { day: 'numeric', month: 'short' })
 }
 
 const xpPercent = computed(() => {

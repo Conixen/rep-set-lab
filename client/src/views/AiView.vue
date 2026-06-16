@@ -1,6 +1,6 @@
 <template>
   <div class="p-5 space-y-5">
-    <h1 class="text-2xl font-bold pt-2">AI Coach</h1>
+    <h1 class="text-2xl font-bold pt-2">{{ t('ai.title') }}</h1>
 
     <template v-if="!result">
       <select
@@ -11,13 +11,13 @@
       </select>
 
       <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-4">
-        <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Build your workout</p>
+        <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">{{ t('ai.buildWorkout') }}</p>
 
         <div class="space-y-2">
-          <p class="text-sm text-white/60">Training environment</p>
+          <p class="text-sm text-white/60">{{ t('ai.trainingEnvironment') }}</p>
           <div class="flex gap-2">
             <button
-              v-for="env in environments" :key="env.key"
+              v-for="env in environmentOptions" :key="env.key"
               @click="environment = env.key"
               :class="environment === env.key ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
               class="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
@@ -26,20 +26,19 @@
         </div>
 
         <div class="space-y-2">
-          <p class="text-sm text-white/60">Muscle groups <span class="text-white/30">(select one or more)</span></p>
+          <p class="text-sm text-white/60">{{ t('ai.muscleGroups.label') }} <span class="text-white/30">{{ t('ai.muscleGroups.hint') }}</span></p>
           <div class="grid grid-cols-3 gap-2">
             <button
-              v-for="mg in muscleGroups" :key="mg"
-              @click="toggleMuscleGroup(mg)"
-              :class="selectedMuscleGroups.includes(mg) ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+              v-for="mg in muscleGroupOptions" :key="mg.key"
+              @click="toggleMuscleGroup(mg.key)"
+              :class="selectedMuscleGroups.includes(mg.key) ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
               class="py-2 rounded-xl text-sm font-medium transition-colors"
-            >{{ mg }}</button>
+            >{{ mg.label }}</button>
           </div>
         </div>
 
-
         <div class="space-y-2">
-          <p class="text-sm text-white/60">Duration</p>
+          <p class="text-sm text-white/60">{{ t('ai.duration.label') }}</p>
           <div class="flex gap-2">
             <button
               v-for="d in durations" :key="d"
@@ -53,41 +52,41 @@
             type="number"
             min="5"
             max="180"
-            placeholder="Or enter minutes manually..."
+            :placeholder="t('ai.duration.placeholder')"
             class="w-full bg-white/5 rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
           />
         </div>
 
         <div class="space-y-2">
-          <p class="text-sm text-white/60">Experience level</p>
+          <p class="text-sm text-white/60">{{ t('ai.experience.label') }}</p>
           <div class="flex gap-2">
             <button
-              v-for="lvl in levels" :key="lvl"
-              @click="experience = lvl"
-              :class="experience === lvl ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+              v-for="lvl in levelOptions" :key="lvl.key"
+              @click="experience = lvl.key"
+              :class="experience === lvl.key ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
               class="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
-            >{{ lvl }}</button>
+            >{{ lvl.label }}</button>
           </div>
         </div>
 
         <div class="space-y-2">
-          <p class="text-sm text-white/60">Goal</p>
+          <p class="text-sm text-white/60">{{ t('ai.goal.label') }}</p>
           <div class="grid grid-cols-2 gap-2">
             <button
-              v-for="g in goals" :key="g"
-              @click="goal = g"
-              :class="goal === g ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+              v-for="g in goalOptions" :key="g.key"
+              @click="goal = g.key"
+              :class="goal === g.key ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
               class="py-2 rounded-xl text-sm font-medium transition-colors"
-            >{{ g }}</button>
+            >{{ g.label }}</button>
           </div>
         </div>
 
         <div class="space-y-2">
-          <p class="text-sm text-white/60">Injuries / limitations <span class="text-white/30">(optional)</span></p>
+          <p class="text-sm text-white/60">{{ t('ai.injuries.label') }} <span class="text-white/30">{{ t('ai.injuries.optional') }}</span></p>
           <textarea
             v-model="injuries"
             rows="2"
-            placeholder="e.g. bad knees, shoulder impingement..."
+            :placeholder="t('ai.injuries.placeholder')"
             @focus="scrollFieldIntoView($event)"
             class="w-full bg-white/5 rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500 resize-none"
           />
@@ -95,7 +94,7 @@
 
         <div class="space-y-1">
           <div class="flex items-center gap-2">
-            <p class="text-sm text-white/60">Workout language</p>
+            <p class="text-sm text-white/60">{{ t('ai.workoutLanguage.label') }}</p>
             <div class="flex gap-1 ml-auto">
               <button
                 @click="language = 'en'"
@@ -109,12 +108,12 @@
               >SV</button>
             </div>
           </div>
-          <p class="text-xs text-white/30">Applies to the generated workout content, not the app interface.</p>
+          <p class="text-xs text-white/30">{{ t('ai.workoutLanguage.note') }}</p>
         </div>
 
         <div class="space-y-2">
           <div class="flex items-center gap-2">
-            <p class="text-sm text-white/60">Extra notes <span class="text-white/30">(optional)</span></p>
+            <p class="text-sm text-white/60">{{ t('ai.extraNotes.label') }} <span class="text-white/30">{{ t('ai.extraNotes.optional') }}</span></p>
             <button
               @click="showPromptTip = !showPromptTip"
               class="w-4 h-4 rounded-full bg-white/10 text-white/40 text-xs flex items-center justify-center hover:bg-white/20 hover:text-white/70 transition-colors shrink-0"
@@ -122,17 +121,17 @@
             >?</button>
           </div>
           <div v-if="showPromptTip" class="bg-white/5 rounded-xl px-4 py-3 text-xs text-white/50 space-y-1">
-            <p class="text-white/70 font-medium mb-1">Add any extra context for a better workout:</p>
-            <p>• Bad lower back but can still row, just no deadlifts</p>
-            <p>• Only dumbbells and a pull-up bar at home</p>
-            <p>• No barbell at my gym, cables and dumbbells only</p>
-            <p>• Avoid all pressing movements, prefer pulls today</p>
-            <p>• Powerlifting meet next month, heavy compounds only</p>
+            <p class="text-white/70 font-medium mb-1">{{ t('ai.extraNotes.tipTitle') }}</p>
+            <p>• {{ t('ai.extraNotes.tip1') }}</p>
+            <p>• {{ t('ai.extraNotes.tip2') }}</p>
+            <p>• {{ t('ai.extraNotes.tip3') }}</p>
+            <p>• {{ t('ai.extraNotes.tip4') }}</p>
+            <p>• {{ t('ai.extraNotes.tip5') }}</p>
           </div>
           <textarea
             v-model="prompt"
             rows="3"
-            placeholder="e.g. bad lower back but can still row, just no deadlifts, only dumbbells at home..."
+            :placeholder="t('ai.extraNotes.placeholder')"
             @focus="scrollFieldIntoView($event)"
             class="w-full bg-white/5 rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500 resize-none"
           />
@@ -150,7 +149,7 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
         </svg>
-        <span>{{ loading ? 'Generating…' : `Generate ${selectedMuscleGroups.join(', ') || 'workout'} · ${effectiveDuration} min` }}</span>
+        <span>{{ loading ? t('ai.generating') : `${t('ai.generate')} ${selectedMuscleGroupLabels.join(', ') || t('ai.workout')} · ${effectiveDuration} min` }}</span>
       </button>
     </template>
 
@@ -169,7 +168,7 @@
         </div>
 
         <section v-if="result.response.warm_up?.length">
-          <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3">Warm Up</p>
+          <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3">{{ t('ai.warmUp') }}</p>
           <div class="space-y-2">
             <div v-for="ex in result.response.warm_up" :key="ex.name" class="bg-white/5 rounded-xl p-3">
               <button v-if="exerciseGifMap[ex.name]" @click="openPopup(ex.name)"
@@ -188,7 +187,7 @@
         </section>
 
         <section v-if="result.response.main?.length">
-          <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3">Main</p>
+          <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3">{{ t('ai.main') }}</p>
           <div class="space-y-2">
             <div v-for="ex in result.response.main" :key="ex.name" class="bg-white/5 rounded-xl p-3">
               <button v-if="exerciseGifMap[ex.name]" @click="openPopup(ex.name)"
@@ -207,7 +206,7 @@
         </section>
 
         <section v-if="result.response.tips?.length">
-          <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-2">Tips</p>
+          <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-2">{{ t('ai.tips') }}</p>
           <ul class="space-y-1">
             <li v-for="tip in result.response.tips" :key="tip" class="text-sm text-white/60 flex gap-2 items-start">
               <span class="text-violet-400 shrink-0 mt-0.5">•</span>
@@ -220,7 +219,7 @@
       <div v-if="xpResult" class="bg-violet-500/20 border border-violet-500/30 rounded-2xl p-4 text-center space-y-1">
         <p class="text-violet-400 font-bold text-xl">+{{ xpResult.xp_earned }} XP</p>
         <p class="text-white/60 text-sm">
-          {{ xpResult.leveled_up ? `Level up! You are now level ${xpResult.level}` : `Total: ${xpResult.total_xp} XP · Level ${xpResult.level}` }}
+          {{ xpResult.leveled_up ? t('ai.levelUp', { level: xpResult.level }) : t('ai.totalXp', { total_xp: xpResult.total_xp, level: xpResult.level }) }}
         </p>
       </div>
 
@@ -230,17 +229,17 @@
         <button
           @click="reset"
           class="flex-1 bg-white/10 hover:bg-white/15 text-white font-semibold py-3 rounded-2xl text-sm transition-colors"
-        >New Workout</button>
+        >{{ t('ai.newWorkout') }}</button>
         <button
           @click="showModal = true"
           class="flex-1 bg-white/10 hover:bg-white/15 text-white font-semibold py-3 rounded-2xl text-sm transition-colors"
-        >View full ▶</button>
+        >{{ t('ai.viewFull') }}</button>
         <button
           v-if="!xpResult"
           @click="complete"
           :disabled="completing"
           class="flex-1 bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white font-semibold py-3 rounded-2xl text-sm transition-colors"
-        >{{ completing ? 'Saving…' : `Complete · ${result.workout.xp_earned} XP` }}</button>
+        >{{ completing ? t('ai.completing') : `${t('ai.complete')} · ${result.workout.xp_earned} XP` }}</button>
       </div>
     </template>
   </div>
@@ -260,7 +259,6 @@
     @deleted="onModalDeleted"
   />
 
-  <!-- Exercise GIF popup — tap exercise name to open, tap backdrop or ✕ to close -->
   <Teleport to="body">
     <div
       v-if="activePopup"
@@ -286,11 +284,16 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api/client'
 import { findLibraryMatch, type LibraryExercise } from '../utils/exerciseMatch'
 import { toMessage } from '../utils/error'
 import { mediaUrl } from '../utils/mediaUrl'
 import WorkoutModal from '../components/WorkoutModal.vue'
+import { useWorkoutOptions } from '../composables/useWorkoutOptions'
+
+const { t, locale } = useI18n()
+const { environmentOptions, muscleGroupOptions, levelOptions, goalOptions } = useWorkoutOptions()
 
 interface Exercise {
   name: string
@@ -328,15 +331,8 @@ const providers = [
   { key: 'claude',           label: 'Claude Sonnet (WIP)' },
   { key: 'openai',           label: 'GPT-4o (WIP)' },
 ]
-const environments = [
-  { key: 'gym',     label: '🏋️ Gym' },
-  { key: 'home',    label: '🏠 Home' },
-  { key: 'outdoor', label: '🌳 Outdoor' },
-]
-const muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Calves', 'Wrists']
-const durations    = [30, 45, 60, 90]
-const levels       = ['Beginner', 'Intermediate', 'Advanced']
-const goals        = ['Muscle gain', 'Fat loss', 'Strength', 'Endurance']
+
+const durations = [30, 45, 60, 90]
 
 const selectedProvider     = ref('gemini-2.5-flash')
 const selectedMuscleGroups = ref<string[]>(['Chest'])
@@ -347,7 +343,7 @@ const goal                 = ref('Muscle gain')
 const injuries             = ref('')
 const prompt               = ref('')
 const environment          = ref('gym')
-const language             = ref('en')
+const language             = ref(locale.value === 'sv' ? 'sv' : 'en')
 const showPromptTip        = ref(false)
 
 const effectiveDuration = computed(() => {
@@ -355,10 +351,16 @@ const effectiveDuration = computed(() => {
   return !isNaN(custom) && custom > 0 ? custom : duration.value
 })
 
-function toggleMuscleGroup(mg: string) {
-  const idx = selectedMuscleGroups.value.indexOf(mg)
+const selectedMuscleGroupLabels = computed(() =>
+  muscleGroupOptions.value
+    .filter(opt => selectedMuscleGroups.value.includes(opt.key))
+    .map(opt => opt.label)
+)
+
+function toggleMuscleGroup(key: string) {
+  const idx = selectedMuscleGroups.value.indexOf(key)
   if (idx === -1) {
-    selectedMuscleGroups.value.push(mg)
+    selectedMuscleGroups.value.push(key)
   } else {
     selectedMuscleGroups.value.splice(idx, 1)
   }
@@ -376,7 +378,6 @@ const result     = ref<GenerateResult | null>(null)
 const xpResult   = ref<XPResult | null>(null)
 const showModal  = ref(false)
 
-// Exercise library — loaded once on mount, used for GIF popup matching
 const libraryExercises = ref<LibraryExercise[]>([])
 onMounted(async () => {
   try {
@@ -386,7 +387,6 @@ onMounted(async () => {
   }
 })
 
-// Map of AI exercise name → gif_url, built once when result arrives
 const exerciseGifMap = computed<Record<string, string>>(() => {
   if (!result.value || libraryExercises.value.length === 0) return {}
 
@@ -405,18 +405,15 @@ const exerciseGifMap = computed<Record<string, string>>(() => {
   return map
 })
 
-// Popup state — one exercise open at a time
 const activePopup = ref<string | null>(null)
 function openPopup(name: string) { activePopup.value = name }
 function closePopup() { activePopup.value = null }
 
-// Lock main scroll when GIF popup is open
 watch(activePopup, (val) => {
   const main = document.querySelector('main') as HTMLElement | null
   if (main) main.style.overflowY = val ? 'hidden' : ''
 })
 
-// Scroll form field into view when keyboard opens on mobile
 function scrollFieldIntoView(e: FocusEvent) {
   setTimeout(() => {
     (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' })

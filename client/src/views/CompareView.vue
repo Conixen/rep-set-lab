@@ -1,19 +1,19 @@
 <template>
   <div class="p-5 space-y-5">
     <div>
-      <h1 class="text-2xl font-bold pt-2">Provider Compare</h1>
-      <p class="text-sm text-white/60 mt-1">Run the same prompt through all active providers in parallel.</p>
+      <h1 class="text-2xl font-bold pt-2">{{ t('compare.title') }}</h1>
+      <p class="text-sm text-white/60 mt-1">{{ t('compare.subtitle') }}</p>
     </div>
 
     <template v-if="!results">
       <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-4">
-        <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Build your workout</p>
+        <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">{{ t('compare.buildWorkout') }}</p>
 
         <div class="space-y-2">
-          <p class="text-sm text-white/60">Training environment</p>
+          <p class="text-sm text-white/60">{{ t('ai.trainingEnvironment') }}</p>
           <div class="flex gap-2">
             <button
-              v-for="env in environments" :key="env.key"
+              v-for="env in environmentOptions" :key="env.key"
               @click="environment = env.key"
               :class="environment === env.key ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
               class="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
@@ -22,19 +22,19 @@
         </div>
 
         <div class="space-y-2">
-          <p class="text-sm text-white/60">Muscle groups <span class="text-white/30">(select one or more)</span></p>
+          <p class="text-sm text-white/60">{{ t('ai.muscleGroups.label') }} <span class="text-white/30">{{ t('ai.muscleGroups.hint') }}</span></p>
           <div class="grid grid-cols-3 gap-2">
             <button
-              v-for="mg in muscleGroups" :key="mg"
-              @click="toggleMuscleGroup(mg)"
-              :class="selectedMuscleGroups.includes(mg) ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+              v-for="mg in muscleGroupOptions" :key="mg.key"
+              @click="toggleMuscleGroup(mg.key)"
+              :class="selectedMuscleGroups.includes(mg.key) ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
               class="py-2 rounded-xl text-sm font-medium transition-colors"
-            >{{ mg }}</button>
+            >{{ mg.label }}</button>
           </div>
         </div>
 
         <div class="space-y-2">
-          <p class="text-sm text-white/60">Duration</p>
+          <p class="text-sm text-white/60">{{ t('ai.duration.label') }}</p>
           <div class="flex gap-2">
             <button
               v-for="d in durations" :key="d"
@@ -46,48 +46,48 @@
           <input
             v-model="customDuration"
             type="number" min="5" max="180"
-            placeholder="Or enter minutes manually..."
+            :placeholder="t('ai.duration.placeholder')"
             class="w-full bg-white/5 rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
           />
         </div>
 
         <div class="space-y-2">
-          <p class="text-sm text-white/60">Experience level</p>
+          <p class="text-sm text-white/60">{{ t('ai.experience.label') }}</p>
           <div class="flex gap-2">
             <button
-              v-for="lvl in levels" :key="lvl"
-              @click="experience = lvl"
-              :class="experience === lvl ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+              v-for="lvl in levelOptions" :key="lvl.key"
+              @click="experience = lvl.key"
+              :class="experience === lvl.key ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
               class="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
-            >{{ lvl }}</button>
+            >{{ lvl.label }}</button>
           </div>
         </div>
 
         <div class="space-y-2">
-          <p class="text-sm text-white/60">Goal</p>
+          <p class="text-sm text-white/60">{{ t('ai.goal.label') }}</p>
           <div class="grid grid-cols-2 gap-2">
             <button
-              v-for="g in goals" :key="g"
-              @click="goal = g"
-              :class="goal === g ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
+              v-for="g in goalOptions" :key="g.key"
+              @click="goal = g.key"
+              :class="goal === g.key ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'"
               class="py-2 rounded-xl text-sm font-medium transition-colors"
-            >{{ g }}</button>
+            >{{ g.label }}</button>
           </div>
         </div>
 
         <div class="space-y-2">
-          <p class="text-sm text-white/60">Injuries / limitations</p>
+          <p class="text-sm text-white/60">{{ t('compare.injuries') }}</p>
           <input
             v-model="injuries"
             type="text"
-            placeholder="e.g. bad knees, shoulder impingement..."
+            :placeholder="t('ai.injuries.placeholder')"
             class="w-full bg-white/5 rounded-xl px-4 py-3 text-base text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500"
           />
         </div>
 
         <div class="space-y-1">
           <div class="flex items-center gap-2">
-            <p class="text-sm text-white/60">Workout language</p>
+            <p class="text-sm text-white/60">{{ t('ai.workoutLanguage.label') }}</p>
             <div class="flex gap-1 ml-auto">
               <button
                 @click="language = 'en'"
@@ -101,15 +101,15 @@
               >SV</button>
             </div>
           </div>
-          <p class="text-xs text-white/30">Applies to the generated workout content, not the app interface.</p>
+          <p class="text-xs text-white/30">{{ t('ai.workoutLanguage.note') }}</p>
         </div>
 
         <div class="space-y-2">
-          <p class="text-sm text-white/60">Custom prompt <span class="text-white/30">(optional)</span></p>
+          <p class="text-sm text-white/60">{{ t('compare.customPrompt.label') }} <span class="text-white/30">{{ t('compare.customPrompt.optional') }}</span></p>
           <textarea
             v-model="prompt"
             rows="3"
-            placeholder="e.g. Focus on compound movements, keep rest periods short..."
+            :placeholder="t('compare.customPrompt.placeholder')"
             class="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500 resize-none"
           />
         </div>
@@ -124,26 +124,26 @@
       >
         <span v-if="loading" class="flex items-center justify-center gap-2">
           <span class="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-          Querying all providers… up to 90s
+          {{ t('compare.querying') }}
         </span>
-        <span v-else>Compare all providers · {{ selectedMuscleGroups.join(', ') || 'workout' }} · {{ effectiveDuration }} min</span>
+        <span v-else>{{ t('compare.compareBtn') }} · {{ selectedMuscleGroupLabels.join(', ') || t('ai.workout') }} · {{ effectiveDuration }} min</span>
       </button>
     </template>
 
     <template v-else>
       <div class="grid grid-cols-3 gap-2 text-center text-xs">
         <div class="bg-[#1e1e24] rounded-xl p-3">
-          <p class="text-white/40 mb-1">Fastest</p>
+          <p class="text-white/40 mb-1">{{ t('compare.fastest') }}</p>
           <p class="font-semibold text-green-400 capitalize">{{ fastest?.provider ?? '—' }}</p>
           <p class="text-white/30 mt-0.5">{{ fastest ? fastest.latency_ms + 'ms' : '' }}</p>
         </div>
         <div class="bg-[#1e1e24] rounded-xl p-3">
-          <p class="text-white/40 mb-1">Cheapest</p>
+          <p class="text-white/40 mb-1">{{ t('compare.cheapest') }}</p>
           <p class="font-semibold text-blue-400 capitalize">{{ cheapest?.provider ?? '—' }}</p>
           <p class="text-white/30 mt-0.5">{{ cheapest ? '$' + cheapest.usage!.cost_usd.toFixed(4) : '' }}</p>
         </div>
         <div class="bg-[#1e1e24] rounded-xl p-3">
-          <p class="text-white/40 mb-1">Best library match</p>
+          <p class="text-white/40 mb-1">{{ t('compare.bestMatch') }}</p>
           <p class="font-semibold text-violet-400 capitalize">{{ bestLibraryMatch?.provider ?? '—' }}</p>
           <p class="text-white/30 mt-0.5">{{ bestLibraryMatch ? pct(bestLibraryMatch.library_match!.match_rate) : '' }}</p>
         </div>
@@ -159,7 +159,7 @@
             <span
               :class="r.error ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'"
               class="text-xs px-2 py-0.5 rounded-full"
-            >{{ r.error ? 'Error' : 'Valid JSON' }}</span>
+            >{{ r.error ? t('compare.error') : t('compare.validJson') }}</span>
           </div>
 
           <p v-if="r.error" class="text-red-400 text-xs break-words">{{ r.error }}</p>
@@ -172,31 +172,31 @@
             </div>
 
             <div v-if="r.behavioral && r.library_match" class="space-y-1.5">
-              <p class="text-xs text-white/30 uppercase tracking-widest">Quality metrics</p>
+              <p class="text-xs text-white/30 uppercase tracking-widest">{{ t('compare.qualityMetrics') }}</p>
               <div class="grid grid-cols-2 gap-1.5 text-xs">
                 <div class="bg-white/5 rounded-xl px-3 py-2">
-                  <p class="text-white/40">Library match</p>
+                  <p class="text-white/40">{{ t('compare.libraryMatch') }}</p>
                   <p class="font-semibold" :class="matchColor(r.library_match.match_rate)">
                     {{ pct(r.library_match.match_rate) }}
                     <span class="text-white/30 font-normal">({{ r.library_match.match_count }}/{{ r.library_match.total_count }})</span>
                   </p>
                 </div>
                 <div class="bg-white/5 rounded-xl px-3 py-2">
-                  <p class="text-white/40">Est. duration</p>
+                  <p class="text-white/40">{{ t('compare.estDuration') }}</p>
                   <p class="font-semibold" :class="durationColor(r.behavioral.estimated_minutes, effectiveDuration)">
                     {{ r.behavioral.estimated_minutes.toFixed(0) }} min
                     <span class="text-white/30 font-normal">/ {{ effectiveDuration }}</span>
                   </p>
                 </div>
                 <div class="bg-white/5 rounded-xl px-3 py-2">
-                  <p class="text-white/40">Structure</p>
+                  <p class="text-white/40">{{ t('compare.structure') }}</p>
                   <p class="font-semibold">{{ r.behavioral.completeness_score }}/3</p>
                   <p class="text-white/30 mt-0.5">{{ sectionSummary(r.behavioral) }}</p>
                 </div>
                 <div class="bg-white/5 rounded-xl px-3 py-2">
-                  <p class="text-white/40">Content richness</p>
+                  <p class="text-white/40">{{ t('compare.contentRichness') }}</p>
                   <p class="font-semibold">{{ pct(r.behavioral.notes_present_rate) }}</p>
-                  <p class="text-white/30 mt-0.5">exercises with notes</p>
+                  <p class="text-white/30 mt-0.5">{{ t('compare.exercisesWithNotes') }}</p>
                 </div>
               </div>
               <div class="flex flex-wrap gap-1.5 text-xs">
@@ -216,32 +216,32 @@
               <button
                 @click="modalResult = r"
                 class="flex-1 text-xs bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 py-2 rounded-xl transition-colors font-medium"
-              >View workout ▶</button>
+              >{{ t('compare.viewWorkout') }}</button>
               <span
                 v-if="savedProviders.has(r.provider)"
                 class="text-xs bg-green-500/10 text-green-400 px-3 py-2 rounded-xl font-medium"
-              >Saved ✓</span>
+              >{{ t('modal.saved') }}</span>
             </div>
           </template>
         </div>
       </div>
 
       <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-3">
-        <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">Raw numbers</p>
+        <p class="text-xs text-white/40 font-semibold tracking-widest uppercase">{{ t('compare.rawNumbers') }}</p>
         <div class="overflow-x-auto">
           <table class="w-full text-xs text-left">
             <thead>
               <tr class="text-white/30 border-b border-white/10">
-                <th class="pb-2 pr-4">Provider</th>
-                <th class="pb-2 pr-4">Latency</th>
-                <th class="pb-2 pr-4">In tok</th>
-                <th class="pb-2 pr-4">Out tok</th>
-                <th class="pb-2 pr-4">Cost</th>
-                <th class="pb-2 pr-4">Library</th>
-                <th class="pb-2 pr-4">Est. min</th>
-                <th class="pb-2 pr-4">Emoji</th>
-                <th class="pb-2 pr-4">Equip. ✗</th>
-                <th class="pb-2">Valid JSON</th>
+                <th class="pb-2 pr-4">{{ t('compare.table.provider') }}</th>
+                <th class="pb-2 pr-4">{{ t('compare.table.latency') }}</th>
+                <th class="pb-2 pr-4">{{ t('compare.table.inTok') }}</th>
+                <th class="pb-2 pr-4">{{ t('compare.table.outTok') }}</th>
+                <th class="pb-2 pr-4">{{ t('compare.table.cost') }}</th>
+                <th class="pb-2 pr-4">{{ t('compare.table.library') }}</th>
+                <th class="pb-2 pr-4">{{ t('compare.table.estMin') }}</th>
+                <th class="pb-2 pr-4">{{ t('compare.table.emoji') }}</th>
+                <th class="pb-2 pr-4">{{ t('compare.table.equipViol') }}</th>
+                <th class="pb-2">{{ t('compare.table.validJson') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-white/5">
@@ -256,7 +256,7 @@
                 <td class="py-2 pr-4">{{ r.behavioral?.emoji_count ?? '—' }}</td>
                 <td class="py-2 pr-4">{{ r.behavioral?.equipment_violations ?? '—' }}</td>
                 <td class="py-2">
-                  <span :class="r.error ? 'text-red-400' : 'text-green-400'">{{ r.error ? 'No' : 'Yes' }}</span>
+                  <span :class="r.error ? 'text-red-400' : 'text-green-400'">{{ r.error ? t('compare.no') : t('compare.yes') }}</span>
                 </td>
               </tr>
             </tbody>
@@ -269,7 +269,7 @@
       <button
         @click="reset"
         class="w-full bg-white/10 hover:bg-white/15 text-white font-semibold py-3 rounded-2xl text-sm transition-colors"
-      >New comparison</button>
+      >{{ t('compare.newComparison') }}</button>
     </template>
   </div>
 
@@ -290,9 +290,14 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api/client'
 import { toMessage } from '../utils/error'
 import WorkoutModal from '../components/WorkoutModal.vue'
+import { useWorkoutOptions } from '../composables/useWorkoutOptions'
+
+const { t, locale } = useI18n()
+const { environmentOptions, muscleGroupOptions, levelOptions, goalOptions } = useWorkoutOptions()
 
 interface Exercise {
   name: string
@@ -340,15 +345,7 @@ interface ProviderResult {
   library_match?: LibraryMatch
 }
 
-const environments = [
-  { key: 'gym',     label: '🏋️ Gym' },
-  { key: 'home',    label: '🏠 Home' },
-  { key: 'outdoor', label: '🌳 Outdoor' },
-]
-const muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Calves', 'Wrists']
-const durations    = [30, 45, 60, 90]
-const levels       = ['Beginner', 'Intermediate', 'Advanced']
-const goals        = ['Muscle gain', 'Fat loss', 'Strength', 'Endurance']
+const durations = [30, 45, 60, 90]
 
 const providerLabels: Record<string, string> = {
   claude: 'Claude Sonnet',
@@ -366,16 +363,22 @@ const goal                 = ref('Muscle gain')
 const injuries             = ref('')
 const prompt               = ref('')
 const environment          = ref('gym')
-const language             = ref('en')
+const language             = ref(locale.value === 'sv' ? 'sv' : 'en')
 
 const effectiveDuration = computed(() => {
   const custom = parseInt(customDuration.value)
   return !isNaN(custom) && custom > 0 ? custom : duration.value
 })
 
-function toggleMuscleGroup(mg: string) {
-  const idx = selectedMuscleGroups.value.indexOf(mg)
-  if (idx === -1) selectedMuscleGroups.value.push(mg)
+const selectedMuscleGroupLabels = computed(() =>
+  muscleGroupOptions.value
+    .filter(opt => selectedMuscleGroups.value.includes(opt.key))
+    .map(opt => opt.label)
+)
+
+function toggleMuscleGroup(key: string) {
+  const idx = selectedMuscleGroups.value.indexOf(key)
+  if (idx === -1) selectedMuscleGroups.value.push(key)
   else selectedMuscleGroups.value.splice(idx, 1)
 }
 
@@ -384,11 +387,11 @@ function setDuration(d: number) {
   customDuration.value = ''
 }
 
-const loading       = ref(false)
-const error         = ref('')
-const results       = ref<ProviderResult[] | null>(null)
+const loading        = ref(false)
+const error          = ref('')
+const results        = ref<ProviderResult[] | null>(null)
 const savedProviders = ref<Set<string>>(new Set())
-const modalResult   = ref<ProviderResult | null>(null)
+const modalResult    = ref<ProviderResult | null>(null)
 
 const successResults = computed(() =>
   (results.value ?? []).filter(r => !r.error && r.usage)
@@ -456,9 +459,9 @@ async function compare() {
 }
 
 function reset() {
-  results.value    = null
+  results.value        = null
   savedProviders.value = new Set()
-  modalResult.value = null
-  error.value      = ''
+  modalResult.value    = null
+  error.value          = ''
 }
 </script>

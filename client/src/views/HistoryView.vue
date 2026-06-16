@@ -1,30 +1,30 @@
 <template>
   <div class="p-5 space-y-4">
-    <h1 class="text-2xl font-bold pt-2">History</h1>
+    <h1 class="text-2xl font-bold pt-2">{{ t('history.title') }}</h1>
 
     <div class="flex gap-2 bg-white/5 p-1 rounded-xl">
       <button
         @click="tab = 'history'"
         :class="tab === 'history' ? 'bg-violet-500 text-white' : 'text-white/50'"
         class="flex-1 py-2 rounded-lg text-sm font-medium transition-colors"
-      >History</button>
+      >{{ t('history.tabHistory') }}</button>
       <button
         @click="tab = 'saved'"
         :class="tab === 'saved' ? 'bg-violet-500 text-white' : 'text-white/50'"
         class="flex-1 py-2 rounded-lg text-sm font-medium transition-colors"
       >
-        Saved
+        {{ t('history.tabSaved') }}
         <span v-if="saved.length" class="ml-1 text-xs opacity-70">({{ saved.length }})</span>
       </button>
     </div>
 
-    <div v-if="loading" class="text-white/40 text-sm text-center py-8">Loading…</div>
+    <div v-if="loading" class="text-white/40 text-sm text-center py-8">{{ t('library.loading') }}</div>
     <p v-else-if="error" class="text-red-400 text-xs">{{ error }}</p>
-    <p v-else-if="workouts.length === 0" class="text-white/40 text-sm text-center py-8">No workouts generated yet.</p>
+    <p v-else-if="workouts.length === 0" class="text-white/40 text-sm text-center py-8">{{ t('history.noWorkouts') }}</p>
 
     <template v-else-if="tab === 'history'">
       <div v-if="completed.length === 0" class="text-white/40 text-sm text-center py-8">
-        No completed workouts yet.
+        {{ t('history.noCompleted') }}
       </div>
       <div v-else class="space-y-3">
         <div
@@ -37,7 +37,7 @@
               <p class="font-semibold capitalize">{{ workoutTitle(w) }}</p>
               <p class="text-xs text-white/40 mt-0.5">{{ formatDateLong(w.created_at) }}</p>
             </div>
-            <span class="shrink-0 text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">Completed</span>
+            <span class="shrink-0 text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">{{ t('history.completedBadge') }}</span>
           </div>
           <div class="flex flex-wrap gap-2 text-xs">
             <span class="bg-violet-500/20 text-violet-400 px-2 py-1 rounded-full">{{ w.ai_provider }}</span>
@@ -45,7 +45,7 @@
             <span class="bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full">{{ w.xp_earned }} XP</span>
           </div>
           <div v-if="progressDelta(w)" class="text-xs text-violet-400">
-            ↑ {{ progressDelta(w) }} min more than last {{ w.muscle_group }} session
+            {{ t('history.progressDelta', { min: progressDelta(w), muscle: w.muscle_group }) }}
           </div>
         </div>
       </div>
@@ -53,7 +53,7 @@
 
     <template v-else>
       <div v-if="saved.length === 0" class="text-white/40 text-sm text-center py-8">
-        No saved workouts. Generate one in AI or save from Compare.
+        {{ t('history.noSaved') }}
       </div>
       <div v-else class="space-y-3">
         <div
@@ -65,7 +65,7 @@
               <p class="font-semibold capitalize truncate">{{ workoutTitle(w) }}</p>
               <p class="text-xs text-white/40 mt-0.5">{{ formatDateLong(w.created_at) }}</p>
             </div>
-            <span class="shrink-0 text-xs px-2 py-1 rounded-full bg-white/10 text-white/40">Saved</span>
+            <span class="shrink-0 text-xs px-2 py-1 rounded-full bg-white/10 text-white/40">{{ t('history.savedBadge') }}</span>
           </div>
           <div class="flex flex-wrap gap-2 text-xs">
             <span class="bg-violet-500/20 text-violet-400 px-2 py-1 rounded-full">{{ w.ai_provider }}</span>
@@ -76,7 +76,7 @@
             <button
               @click="openModal(w)"
               class="flex-1 bg-violet-500 hover:bg-violet-600 text-white font-medium py-2 rounded-xl text-sm transition-colors"
-            >View workout</button>
+            >{{ t('history.viewWorkout') }}</button>
           </div>
         </div>
       </div>
@@ -101,10 +101,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api/client'
 import { toMessage } from '../utils/error'
 import { formatDateLong } from '../utils/date'
 import WorkoutModal from '../components/WorkoutModal.vue'
+
+const { t } = useI18n()
 
 interface NullString {
   String: string

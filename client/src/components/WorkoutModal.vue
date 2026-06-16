@@ -6,7 +6,7 @@
     >
       <div class="min-h-full flex items-center justify-center p-4 py-8">
         <div v-if="!workout" class="bg-[#1e1e24] rounded-2xl w-full max-w-lg p-8 text-center text-white/40">
-          No workout data.<button @click="$emit('close')" class="block mx-auto mt-4 text-violet-400 text-sm">Close</button>
+          {{ t('modal.noData') }}<button @click="$emit('close')" class="block mx-auto mt-4 text-violet-400 text-sm">{{ t('modal.close') }}</button>
         </div>
         <div v-else class="bg-[#1e1e24] rounded-2xl w-full max-w-lg overflow-hidden">
 
@@ -25,12 +25,12 @@
           <div class="flex gap-2 px-5 pb-4 flex-wrap text-xs">
             <span v-if="provider" class="bg-violet-500/20 text-violet-400 px-2 py-1 rounded-full capitalize">{{ provider }}</span>
             <span v-if="durationMinutes" class="bg-white/5 text-white/40 px-2 py-1 rounded-full">{{ durationMinutes }} min</span>
-            <span v-if="xpToEarn > 0" class="bg-white/5 text-white/40 px-2 py-1 rounded-full">{{ xpToEarn }} XP on completion</span>
+            <span v-if="xpToEarn > 0" class="bg-white/5 text-white/40 px-2 py-1 rounded-full">{{ t('modal.xpOnCompletion', { xp: xpToEarn }) }}</span>
           </div>
 
           <div class="px-5 pb-5 space-y-5">
             <section v-if="workout.warm_up?.length">
-              <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3">Warm Up</p>
+              <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3">{{ t('modal.warmUp') }}</p>
               <div class="space-y-2">
                 <div
                   v-for="ex in workout.warm_up" :key="ex.name"
@@ -55,7 +55,7 @@
                           v-if="!activeTimer || activeTimer.name !== ex.name"
                           @click="startRest(ex.name, ex.rest_seconds!)"
                           class="text-xs bg-white/10 hover:bg-white/15 text-white/50 px-2 py-0.5 rounded-lg transition-colors shrink-0"
-                        >Rest {{ ex.rest_seconds }}s</button>
+                        >{{ t('modal.rest', { seconds: ex.rest_seconds }) }}</button>
                         <div v-else class="flex items-center gap-1.5 shrink-0">
                           <span
                             class="text-xs font-mono font-bold tabular-nums"
@@ -72,7 +72,7 @@
             </section>
 
             <section v-if="workout.main?.length">
-              <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3">Main</p>
+              <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3">{{ t('modal.main') }}</p>
               <div class="space-y-2">
                 <div
                   v-for="ex in workout.main" :key="ex.name"
@@ -97,7 +97,7 @@
                           v-if="!activeTimer || activeTimer.name !== ex.name"
                           @click="startRest(ex.name, ex.rest_seconds!)"
                           class="text-xs bg-white/10 hover:bg-white/15 text-white/50 px-2 py-0.5 rounded-lg transition-colors shrink-0"
-                        >Rest {{ ex.rest_seconds }}s</button>
+                        >{{ t('modal.rest', { seconds: ex.rest_seconds }) }}</button>
                         <div v-else class="flex items-center gap-1.5 shrink-0">
                           <span
                             class="text-xs font-mono font-bold tabular-nums"
@@ -114,7 +114,7 @@
             </section>
 
             <section v-if="workout.tips?.length">
-              <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-2">Tips</p>
+              <p class="text-xs font-semibold text-white/60 uppercase tracking-widest mb-2">{{ t('modal.tips') }}</p>
               <ul class="space-y-1.5">
                 <li v-for="tip in workout.tips" :key="tip" class="text-sm text-white/60 flex gap-2 items-start">
                   <span class="text-violet-400 shrink-0 mt-0.5">•</span>
@@ -127,7 +127,7 @@
           <div v-if="xpResult" class="mx-5 mb-4 bg-violet-500/20 border border-violet-500/30 rounded-2xl p-4 text-center space-y-0.5">
             <p class="text-violet-400 font-bold text-xl">+{{ xpResult.xp_earned }} XP</p>
             <p class="text-white/60 text-sm">
-              {{ xpResult.leveled_up ? `Level up! Level ${xpResult.level}` : `Total: ${xpResult.total_xp} XP · Level ${xpResult.level}` }}
+              {{ xpResult.leveled_up ? t('modal.levelUp', { level: xpResult.level }) : t('modal.totalXp', { total_xp: xpResult.total_xp, level: xpResult.level }) }}
             </p>
           </div>
 
@@ -139,21 +139,21 @@
                 @click="handleSave"
                 :disabled="saving"
                 class="flex-1 bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white font-semibold py-3 rounded-2xl text-sm transition-colors"
-              >{{ saving ? 'Saving…' : 'Save workout' }}</button>
+              >{{ saving ? t('modal.saving') : t('modal.saveWorkout') }}</button>
             </template>
 
             <template v-else-if="mode === 'compare-saved'">
-              <div class="flex-1 bg-green-500/10 text-green-400 py-3 rounded-2xl text-sm font-semibold text-center">Saved ✓</div>
+              <div class="flex-1 bg-green-500/10 text-green-400 py-3 rounded-2xl text-sm font-semibold text-center">{{ t('modal.saved') }}</div>
             </template>
 
             <template v-else-if="mode === 'saved' && !xpResult">
               <template v-if="!confirmingDelete">
-                <div class="flex-1 bg-green-500/10 text-green-400 py-3 rounded-2xl text-sm font-semibold text-center">Saved ✓</div>
+                <div class="flex-1 bg-green-500/10 text-green-400 py-3 rounded-2xl text-sm font-semibold text-center">{{ t('modal.saved') }}</div>
                 <button
                   @click="handleComplete"
                   :disabled="completing"
                   class="flex-1 bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white font-semibold py-3 rounded-2xl text-sm transition-colors"
-                >{{ completing ? 'Completing…' : `Complete · ${xpToEarn} XP` }}</button>
+                >{{ completing ? t('modal.completing') : t('modal.complete', { xp: xpToEarn }) }}</button>
                 <button
                   @click="confirmingDelete = true"
                   class="px-4 py-3 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm transition-colors"
@@ -161,21 +161,21 @@
                 >🗑</button>
               </template>
               <template v-else>
-                <span class="flex-1 text-sm text-white/60 flex items-center">Remove workout?</span>
+                <span class="flex-1 text-sm text-white/60 flex items-center">{{ t('modal.removeConfirm') }}</span>
                 <button
                   @click="handleDelete"
                   :disabled="deleting"
                   class="flex-1 bg-red-500/20 hover:bg-red-500/30 disabled:opacity-50 text-red-400 font-semibold py-3 rounded-2xl text-sm transition-colors"
-                >{{ deleting ? '…' : 'Yes, delete' }}</button>
+                >{{ deleting ? '…' : t('modal.yesDelete') }}</button>
                 <button
                   @click="confirmingDelete = false"
                   class="flex-1 bg-white/10 hover:bg-white/15 text-white/60 font-semibold py-3 rounded-2xl text-sm transition-colors"
-                >Cancel</button>
+                >{{ t('modal.cancel') }}</button>
               </template>
             </template>
 
             <template v-else-if="mode === 'completed' || xpResult">
-              <div class="flex-1 bg-white/5 text-white/40 py-3 rounded-2xl text-sm font-semibold text-center">Completed ✓</div>
+              <div class="flex-1 bg-white/5 text-white/40 py-3 rounded-2xl text-sm font-semibold text-center">{{ t('modal.completed') }}</div>
             </template>
           </div>
 
@@ -187,6 +187,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api/client'
 import { findLibraryMatch, type LibraryExercise } from '../utils/exerciseMatch'
 import { toMessage } from '../utils/error'
@@ -215,6 +216,8 @@ interface XPResult {
   level: number
   leveled_up: boolean
 }
+
+const { t } = useI18n()
 
 const props = defineProps<{
   workout: WorkoutResponse

@@ -1,8 +1,8 @@
 <template>
   <div class="p-5 space-y-6">
-    <h1 class="text-2xl font-bold pt-2">Profile</h1>
+    <h1 class="text-2xl font-bold pt-2">{{ t('profile.title') }}</h1>
 
-    <div v-if="loading" class="text-white/40 text-sm text-center py-8">Loading…</div>
+    <div v-if="loading" class="text-white/40 text-sm text-center py-8">{{ t('library.loading') }}</div>
 
     <template v-else-if="stats">
       <div class="flex flex-col items-center gap-3 py-4">
@@ -15,22 +15,22 @@
       <div class="grid grid-cols-3 gap-3">
         <div class="bg-[#1e1e24] rounded-2xl p-4 text-center">
           <p class="text-2xl font-bold text-violet-400">{{ stats.level }}</p>
-          <p class="text-xs text-white/40 mt-1">Level</p>
+          <p class="text-xs text-white/40 mt-1">{{ t('profile.level') }}</p>
         </div>
         <div class="bg-[#1e1e24] rounded-2xl p-4 text-center">
           <p class="text-2xl font-bold">{{ stats.workouts_completed }}</p>
-          <p class="text-xs text-white/40 mt-1">Completed</p>
+          <p class="text-xs text-white/40 mt-1">{{ t('profile.completed') }}</p>
         </div>
         <div class="bg-[#1e1e24] rounded-2xl p-4 text-center">
           <p class="text-2xl font-bold">{{ stats.workouts_total }}</p>
-          <p class="text-xs text-white/40 mt-1">Workouts</p>
+          <p class="text-xs text-white/40 mt-1">{{ t('profile.workouts') }}</p>
         </div>
       </div>
 
       <div class="bg-[#1e1e24] rounded-2xl p-4 space-y-2">
         <div class="flex justify-between items-baseline">
-          <span class="text-white/50 text-sm">Total XP</span>
-          <span class="text-white/40 text-xs">Next level: {{ stats.next_level_xp }} XP</span>
+          <span class="text-white/50 text-sm">{{ t('profile.totalXp') }}</span>
+          <span class="text-white/40 text-xs">{{ t('profile.nextLevel', { xp: stats.next_level_xp }) }}</span>
         </div>
         <div class="flex items-baseline gap-1.5">
           <span class="text-2xl font-bold">{{ stats.total_xp }}</span>
@@ -40,7 +40,7 @@
           <div class="h-full bg-violet-500 rounded-full transition-all"
                :style="{ width: xpPercent + '%' }"></div>
         </div>
-        <p class="text-xs text-white/30 text-right">{{ stats.total_xp }} / {{ stats.next_level_xp }} XP · {{ xpToNext }} to go</p>
+        <p class="text-xs text-white/30 text-right">{{ t('profile.xpProgress', { total: stats.total_xp, next: stats.next_level_xp, toGo: xpToNext }) }}</p>
       </div>
     </template>
 
@@ -49,16 +49,19 @@
     <button
       @click="handleLogout"
       class="w-full border border-white/10 text-white/50 font-medium py-3 rounded-2xl text-sm hover:bg-white/5 transition-colors"
-    >Log out</button>
+    >{{ t('profile.logout') }}</button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { api } from '../api/client'
 import { toMessage } from '../utils/error'
+
+const { t } = useI18n()
 
 interface Stats {
   username:            string

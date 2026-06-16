@@ -1,0 +1,243 @@
+{
+  "ai": {
+    "title": "AI Coach",
+    "buildWorkout": "Bygg ditt pass",
+    "trainingEnvironment": "Träningsmiljö",
+    "muscleGroups": {
+      "label": "Muskelgrupper",
+      "hint": "(välj en eller flera)",
+      "chest": "Bröst",
+      "back": "Rygg",
+      "legs": "Ben",
+      "shoulders": "Axlar",
+      "arms": "Armar",
+      "core": "Core",
+      "calves": "Vader",
+      "wrists": "Handleder"
+    },
+    "duration": {
+      "label": "Längd",
+      "placeholder": "Eller ange minuter manuellt..."
+    },
+    "experience": {
+      "label": "Erfarenhetsnivå",
+      "beginner": "Nybörjare",
+      "intermediate": "Medel",
+      "advanced": "Avancerad"
+    },
+    "goal": {
+      "label": "Mål",
+      "muscleGain": "Muskeltillväxt",
+      "fatLoss": "Fettförbränning",
+      "strength": "Styrka",
+      "endurance": "Uthållighet"
+    },
+    "injuries": {
+      "label": "Skador / begränsningar",
+      "optional": "(valfritt)",
+      "placeholder": "t.ex. dåliga knän, axelproblem..."
+    },
+    "workoutLanguage": {
+      "label": "Passets språk",
+      "note": "Gäller det genererade passinnehållet, inte appens gränssnitt."
+    },
+    "extraNotes": {
+      "label": "Extra anteckningar",
+      "optional": "(valfritt)",
+      "placeholder": "t.ex. ont i ryggen men kan ro, inga dödlyft, bara hantlar hemma...",
+      "tipTitle": "Lägg till extra kontext för ett bättre pass:",
+      "tip1": "Ont i ryggen men kan fortfarande ro, bara inga dödlyft",
+      "tip2": "Bara hantlar och en pull-up stång hemma",
+      "tip3": "Inget skivstångsstativ på gymmet, bara kablar och hantlar",
+      "tip4": "Undvik alla tryckrelaterade rörelser, föredrar drag idag",
+      "tip5": "Styrkelyftestävling nästa månad, bara tunga basövningar"
+    },
+    "generate": "Generera",
+    "generating": "Genererar…",
+    "workout": "pass",
+    "warmUp": "Uppvärmning",
+    "main": "Huvudpass",
+    "tips": "Tips",
+    "newWorkout": "Nytt pass",
+    "viewFull": "Visa fullt ▶",
+    "complete": "Slutför",
+    "completing": "Sparar…",
+    "levelUp": "Level upp! Du är nu level {level}",
+    "totalXp": "Totalt: {total_xp} XP · Level {level}"
+  },
+  "environments": {
+    "gym": "🏋️ Gym",
+    "home": "🏠 Hemma",
+    "outdoor": "🌳 Utomhus"
+  },
+  "compare": {
+    "title": "Jämför leverantörer",
+    "subtitle": "Kör samma prompt genom alla aktiva leverantörer parallellt.",
+    "buildWorkout": "Bygg ditt pass",
+    "injuries": "Skador / begränsningar",
+    "customPrompt": {
+      "label": "Anpassad prompt",
+      "optional": "(valfritt)",
+      "placeholder": "t.ex. Fokus på basövningar, korta viloperioder..."
+    },
+    "querying": "Frågar alla leverantörer… upp till 90s",
+    "compareBtn": "Jämför alla leverantörer",
+    "fastest": "Snabbast",
+    "cheapest": "Billigast",
+    "bestMatch": "Bäst biblioteksmatch",
+    "qualityMetrics": "Kvalitetsmått",
+    "libraryMatch": "Biblioteksmatch",
+    "estDuration": "Uppskattad tid",
+    "structure": "Struktur",
+    "contentRichness": "Innehållsrikedom",
+    "exercisesWithNotes": "övningar med noter",
+    "rawNumbers": "Rådata",
+    "newComparison": "Ny jämförelse",
+    "viewWorkout": "Visa pass ▶",
+    "error": "Fel",
+    "validJson": "Giltig JSON",
+    "yes": "Ja",
+    "no": "Nej",
+    "table": {
+      "provider": "Leverantör",
+      "latency": "Latens",
+      "inTok": "In tok",
+      "outTok": "Ut tok",
+      "cost": "Kostnad",
+      "library": "Bibliotek",
+      "estMin": "Uppsk. min",
+      "emoji": "Emoji",
+      "equipViol": "Utrust. ✗",
+      "validJson": "Giltig JSON"
+    }
+  },
+  "library": {
+    "title": "Övningsbibliotek",
+    "searchPlaceholder": "Sök övningar...",
+    "loading": "Laddar…",
+    "noImage": "Ingen bild",
+    "prev": "← Föregående",
+    "next": "Nästa →",
+    "filters": {
+      "all": "Alla",
+      "back": "rygg",
+      "chest": "bröst",
+      "shoulders": "axlar",
+      "arms": "armar",
+      "legs": "ben",
+      "core": "core",
+      "lowerLegs": "vader",
+      "lowerArms": "underarmar"
+    }
+  },
+  "tags": {
+    "difficulty": {
+      "beginner": "nybörjare",
+      "intermediate": "medel",
+      "advanced": "avancerad"
+    },
+    "equipment": {
+      "barbell": "skivstång",
+      "dumbbells": "hantlar",
+      "none": "utan redskap",
+      "cable_machine": "kabelmaskin",
+      "pull_up_bar": "pull-up stång",
+      "leg_press_machine": "benpress",
+      "machine": "maskin",
+      "machine_or_bodyweight": "maskin eller kroppsvikt",
+      "dip_bars": "dip-stänger",
+      "ab_wheel": "maghjul",
+      "none_or_plate": "utan redskap eller skiva",
+      "none_or_dumbbell": "utan redskap eller hantel"
+    },
+    "muscle": {
+      "chest": "bröst",
+      "back": "rygg",
+      "legs": "ben",
+      "shoulders": "axlar",
+      "arms": "armar",
+      "core": "core",
+      "lower_legs": "vader",
+      "lower_arms": "underarmar"
+    }
+  },
+  "home": {
+    "totalXp": "Total XP",
+    "nextLevel": "Nästa level: {xp} XP",
+    "xpToGo": "{xp} XP kvar",
+    "thisWeek": "Den här veckan",
+    "sessionsLogged": "Pass loggade",
+    "recentWorkouts": "Senaste pass",
+    "today": "Idag",
+    "yesterday": "Igår",
+    "greetings": {
+      "morning": ["God morgon", "Dags att träna", "Morgon, champ"],
+      "afternoon": ["God eftermiddag", "Fortsätt kämpa", "Eftermiddagskoll"],
+      "evening": ["God kväll", "Dagen är inte slut", "Kvällspass"],
+      "night": ["Fortfarande på hugget", "Natten är ung", "Sent kvällspass"]
+    }
+  },
+  "history": {
+    "title": "Historik",
+    "tabHistory": "Historik",
+    "tabSaved": "Sparade",
+    "noWorkouts": "Inga pass genererade än.",
+    "noCompleted": "Inga avklarade pass än.",
+    "noSaved": "Inga sparade pass. Generera ett i AI eller spara från Jämför.",
+    "completedBadge": "Avklarat",
+    "savedBadge": "Sparat",
+    "viewWorkout": "Visa pass",
+    "progressDelta": "↑ {min} min mer än senaste {muscle}-passet"
+  },
+  "profile": {
+    "title": "Profil",
+    "level": "Level",
+    "completed": "Avklarade",
+    "workouts": "Pass",
+    "totalXp": "Total XP",
+    "nextLevel": "Nästa level: {xp} XP",
+    "xpProgress": "{total} / {next} XP · {toGo} kvar",
+    "logout": "Logga ut"
+  },
+  "settings": {
+    "title": "Inställningar",
+    "language": {
+      "label": "Språk"
+    },
+    "tabs": {
+      "username": "Användarnamn",
+      "password": "Lösenord"
+    },
+    "username": {
+      "title": "Byt användarnamn",
+      "placeholder": "Nytt användarnamn",
+      "save": "Spara användarnamn"
+    },
+    "password": {
+      "title": "Byt lösenord",
+      "currentPlaceholder": "Nuvarande lösenord",
+      "newPlaceholder": "Nytt lösenord",
+      "save": "Spara lösenord"
+    }
+  },
+  "modal": {
+    "warmUp": "Uppvärmning",
+    "main": "Huvudpass",
+    "tips": "Tips",
+    "noData": "Ingen träningsdata.",
+    "rest": "Vila {seconds}s",
+    "saveWorkout": "Spara pass",
+    "saving": "Sparar…",
+    "saved": "Sparat ✓",
+    "completing": "Slutför…",
+    "complete": "Slutför · {xp} XP",
+    "completed": "Slutfört ✓",
+    "removeConfirm": "Ta bort passet?",
+    "yesDelete": "Ja, ta bort",
+    "cancel": "Avbryt",
+    "close": "Stäng",
+    "levelUp": "Level upp! Level {level}",
+    "totalXp": "Totalt: {total_xp} XP · Level {level}",
+    "xpOnCompletion": "{xp} XP vid slutförande"
+  }
+}
